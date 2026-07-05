@@ -2,36 +2,25 @@
 <html lang="zh-HK" class="dark" style="background-color: #121212;">
 <head>
     <meta charset="UTF-8">
-    <!-- 針對手機的終極視口設定：禁止不自然縮放，適配瀏海螢幕 -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>極簡財務與職涯戰情室</title>
     
-    <!-- PWA / Mobile Web App 專屬 Meta 標籤 -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="財務戰情室">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#121212">
     
-    <!-- ========================================== -->
-    <!-- 新增：網站與 iOS 主畫面圖示 (App Icon) -->
-    <!-- 請將你的圖示命名為 icon.png 並上傳至與此 HTML 相同的 GitHub 資料夾 -->
-    <link rel="apple-touch-icon" href="icon.png?v=2">
-    <link rel="icon" type="image/png" href="icon.png?v=2">
-    <!-- ========================================== -->
+    <!-- 網站與 iOS 主畫面圖示 (App Icon) -->
+    <link rel="apple-touch-icon" href="icon.png?v=3">
+    <link rel="icon" type="image/png" href="icon.png?v=3">
     
-    <!-- React & ReactDOM -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <!-- Babel -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Tesseract.js for OCR -->
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-    <!-- Google Fonts: Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
     <script>
@@ -51,7 +40,6 @@
                     },
                     animation: {
                         'fade-in-up': 'fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards',
-                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
                     },
                     keyframes: {
                         fadeInUp: {
@@ -63,6 +51,7 @@
             }
         }
     </script>
+    
     <style>
         .pt-safe { padding-top: max(env(safe-area-inset-top), 24px) !important; }
         .safe-area-pb { padding-bottom: max(env(safe-area-inset-bottom), 20px) !important; }
@@ -78,17 +67,14 @@
         .dark ::selection { background: #45423d; color: #faf9f8; }
         .smooth-transition { transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
         
-        /* 強制瀏覽器原生元件 (如日曆、選單) 採用深色模式 */
         html.dark, .dark { color-scheme: dark; } 
         
-        /* 客製化表格可視捲動軸 */
         .custom-scrollbar::-webkit-scrollbar { height: 6px; width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #d6d3cd; border-radius: 10px; }
         .dark .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #45423d; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background-color: #a8a49c; }
 
-        /* Range Slider 樣式優化，增強觸控體驗 */
         input[type=range] { -webkit-appearance: none; background: transparent; width: 100%; touch-action: none; }
         input[type=range]::-webkit-slider-runnable-track { height: 8px; background: #e8e6e1; border-radius: 4px; border: none; }
         .dark input[type=range]::-webkit-slider-runnable-track { background: #2e2c29; }
@@ -98,7 +84,6 @@
         .accent-clay::-webkit-slider-thumb { background: #b87a67; }
         .dark .accent-clay::-webkit-slider-thumb { background: #cfa293; }
         
-        /* 避免手機輸入框導致的字體縮放 */
         input[type="number"], input[type="text"], input[type="date"] { font-size: 16px !important; }
     </style>
 </head>
@@ -108,7 +93,6 @@
     <script type="text/babel">
         const { useState, useEffect, useMemo, useRef } = React;
 
-        // Helper function for empty string vs number
         const num = (val) => Number(val) || 0;
 
         const Icons = {
@@ -148,7 +132,6 @@
             }
         }
 
-        // XIRR 核心計算邏輯 (牛頓法)
         const calculateXIRR = (cashFlows) => {
             const validFlows = cashFlows
                 .filter(cf => cf.date && !isNaN(Number(cf.amount)) && Number(cf.amount) !== 0)
@@ -210,7 +193,6 @@
                 return [storedValue, setValue];
             };
 
-            // 深色模式狀態與底層連動
             const [isDarkMode, setIsDarkMode] = useLocalStorage('fire_theme_dark', true); 
 
             useEffect(() => {
@@ -228,7 +210,6 @@
             const [currentAge, setCurrentAge] = useLocalStorage('fire_age_v3', 26);
             const [spareCash, setSpareCash] = useLocalStorage('fire_spare_cash_v3', 50000);
             
-            // === XIRR 預設資料庫 ===
             const [xirrRecords, setXirrRecords] = useLocalStorage('fire_xirr_records_v4', [
                 { id: '1', date: '2022-08-11', amount: -70000 },
                 { id: '2', date: '2022-08-30', amount: -15000 },
@@ -269,19 +250,16 @@
                 { id: '37', date: '2026-07-02', amount: 324533 }
             ]);
 
-            // === 再平衡計算機 資料庫 ===
-            const initialRebalanceTickers = [
+            const [rebalanceTickers, setRebalanceTickers] = useLocalStorage('fire_rebalance_tickers_v1', [
                 { symbol: 'AVDV', targetPct: 13.5, currentVal: 4720 },
                 { symbol: 'AVUV', targetPct: 16.5, currentVal: 6295 },
                 { symbol: 'IMOM', targetPct: 18.0, currentVal: 6374 },
                 { symbol: 'IVAL', targetPct: 13.5, currentVal: 4717 },
                 { symbol: 'QMOM', targetPct: 22.0, currentVal: 7832 },
                 { symbol: 'QVAL', targetPct: 16.5, currentVal: 6011 }
-            ];
-            const [rebalanceTickers, setRebalanceTickers] = useLocalStorage('fire_rebalance_tickers_v1', initialRebalanceTickers);
+            ]);
             const [rawNewMoney, setRawNewMoney] = useLocalStorage('fire_rebalance_money_v1', 5644);
 
-            // 自動找出最新正數作為「當前市值」，系統唯一資料源，不再需要手動輸入 IB
             const latestMarketValue = useMemo(() => {
                 const positiveRecords = xirrRecords
                     .filter(r => Number(r.amount) > 0 && r.date)
@@ -289,15 +267,13 @@
                 return positiveRecords.length > 0 ? Number(positiveRecords[0].amount) : 0;
             }, [xirrRecords]);
             
-            // 將最新市值直接做為投入引擎的本金
             const initialCapital = latestMarketValue;
             
-            // 債務回收矩陣邏輯
             const schedule = useMemo(() => {
                 let balance = 630513;
                 const data = [];
                 const startDate = new Date(2025, 10, 29); // 2025-11-29
-                const currentPeriod = 9; // 模擬當下為 2026年7月 (第9期)
+                const currentPeriod = 9; 
                 
                 for (let i = 1; i <= 39; i++) {
                     const interest = balance * (0.14 / 12);
@@ -372,12 +348,23 @@
                 const monthlyRate = (numAnnualReturn / 100) / 12;
                 const data = [];
                 
-                data.push({ year: 0, age: num(currentAge), 總資產: balance, 實質購買力: realBalance, 投入本金: balance });
+                const baseYear = 2026;
+                const baseMonth = 7;
+
+                data.push({ 
+                    monthsElapsed: 0,
+                    yearStr: `${baseYear}年${baseMonth}月`,
+                    ageStr: `${num(currentAge)}歲`,
+                    age: num(currentAge),
+                    總資產: balance, 
+                    實質購買力: realBalance, 
+                    投入本金: balance 
+                });
 
                 let totalPrincipal = balance;
                 let limit = 0;
 
-                while (realBalance < safeTarget * 1.5 && limit < 480) { 
+                while (realBalance < safeTarget * 1.5 && limit < 600) { 
                     limit++;
                     months++;
                     
@@ -391,23 +378,34 @@
                     realBalance = balance / Math.pow(1 + numInflation/100, months/12);
                     totalPrincipal += currentContribution;
 
-                    if (months % 12 === 0) {
-                        data.push({
-                            year: months / 12, age: num(currentAge) + (months / 12),
-                            總資產: Math.round(balance), 實質購買力: Math.round(realBalance), 投入本金: Math.round(totalPrincipal)
-                        });
-                    }
+                    let currentY = baseYear + Math.floor((baseMonth - 1 + months) / 12);
+                    let currentM = ((baseMonth - 1 + months) % 12) + 1;
+                    let ageY = Math.floor(num(currentAge) + months / 12);
+                    let ageM = months % 12;
+
+                    data.push({
+                        monthsElapsed: months,
+                        yearStr: `${currentY}年${currentM}月`,
+                        ageStr: `${ageY}歲${ageM > 0 ? ageM + '個月' : ''}`,
+                        age: ageY,
+                        總資產: Math.round(balance), 
+                        實質購買力: Math.round(realBalance), 
+                        投入本金: Math.round(totalPrincipal)
+                    });
                 }
                 
-                const exactTargetIndex = data.findIndex(d => d.實質購買力 >= safeTarget);
-                return { data, years: exactTargetIndex !== -1 ? data[exactTargetIndex].year : 0 };
+                const exactTargetData = data.find(d => d.實質購買力 >= safeTarget);
+                
+                return { 
+                    data, 
+                    targetHit: exactTargetData || null 
+                };
             }, [initialCapital, availableSavings, contributionStage2, contributionStage3, autoStage1Months, autoStage2Months, annualReturn, currentAge, inflationRate, target]);
 
             return (
                 <div className={isDarkMode ? 'dark' : ''}>
                     <div className="min-h-screen bg-stone-50 dark:bg-[#121212] text-stone-800 dark:text-stone-200 font-sans transition-colors duration-500 selection:bg-sage-200 dark:selection:bg-sage-800 selection:text-stone-900 dark:selection:text-white pb-8">
                         
-                        {/* 頂部極簡導航 */}
                         <header className="sticky top-0 z-50 bg-stone-50/90 dark:bg-[#121212]/90 backdrop-blur-xl border-b border-stone-200 dark:border-stone-800/50 transition-colors duration-500 pt-safe">
                             <div className="max-w-7xl mx-auto px-4 md:px-6 h-auto md:h-20 flex flex-col md:flex-row justify-between items-center py-3 md:py-0 gap-3 md:gap-0">
                                 <div className="flex items-center justify-between w-full md:w-auto">
@@ -439,12 +437,11 @@
                             </div>
                         </header>
 
-                        {/* Main Content */}
                         <main className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-6 md:py-12">
                             <div className="animate-fade-in-up">
                                 {activeTab === 'dashboard' && <DashboardTab 
                                     expenses={expenses} setExpenses={setExpenses} mpf={mpf} totalIncome={totalIncome} availableSavings={availableSavings}
-                                    fireYears={chartData.years} target={target} spareCash={spareCash} setSpareCash={setSpareCash}
+                                    targetHit={chartData.targetHit} target={target} spareCash={spareCash} setSpareCash={setSpareCash}
                                     latestMarketValue={latestMarketValue} outstandingLoan={outstandingLoan}
                                     netWorthExcludeLoan={netWorthExcludeLoan} netWorthIncludeLoan={netWorthIncludeLoan}
                                 />}
@@ -533,13 +530,11 @@
             </div>
         );
 
-        // 新增：再平衡計算機 元件 (包含 OCR)
         function RebalanceTab({ rawNewMoney, setRawNewMoney, tickers, setTickers }) {
             const [isOcrProcessing, setIsOcrProcessing] = useState(false);
             const [ocrProgress, setOcrProgress] = useState('');
             const fileInputRef = useRef(null);
 
-            // 處理上傳並啟動 Tesseract OCR
             const handleFileUpload = async (e) => {
                 const file = e.target.files[0];
                 if (!file) return;
@@ -554,7 +549,6 @@
                         return;
                     }
 
-                    // 使用更穩定且兼容 Tesseract v5 的 recognize 捷徑方法，避免手動 createWorker 卡死
                     const { data: { text } } = await window.Tesseract.recognize(
                         file,
                         'eng+chi_tra',
@@ -573,7 +567,6 @@
 
                     setOcrProgress('資料匹配中...');
 
-                    // 解析「總計現金」 (準備投入新資金)
                     let parsedNewMoney = rawNewMoney;
                     const cashMatch = text.match(/(?:總計現金|總\s*計\s*現\s*金|現金餘額|總計|Total\s*Cash)[^\d]*?([\d,]+\.\d{2})/i);
                     if (cashMatch) {
@@ -581,10 +574,8 @@
                         if (!isNaN(cashVal)) parsedNewMoney = cashVal;
                     }
 
-                    // 解析「各檔 ETF 市值」
                     const newTickers = [...tickers];
                     newTickers.forEach((t, idx) => {
-                        // 找尋 ETF 代號，忽略中間不相干的英文字母或空白，抓取第一組數字
                         const tickerRegex = new RegExp(t.symbol + '[^\\d]*?([\\d,]+(?:\\.\\d{2})?)', 'i');
                         const tMatch = text.match(tickerRegex);
                         if (tMatch) {
@@ -610,25 +601,21 @@
                 if(fileInputRef.current) fileInputRef.current.value = '';
             };
 
-            // 邏輯運算
-            const actualNewMoney = num(rawNewMoney) / 1.01; // 扣除 1% 費用
+            const actualNewMoney = num(rawNewMoney) / 1.01; 
             const totalCurrent = tickers.reduce((sum, t) => sum + num(t.currentVal), 0);
             const targetTotal = totalCurrent + actualNewMoney;
 
-            // 計算各項數值
             const rows = tickers.map(t => {
                 const targetValue = targetTotal * (t.targetPct / 100);
                 const gap = targetValue - num(t.currentVal);
                 return { ...t, targetValue, gap };
             });
 
-            // 處理買入邏輯 (只買不賣：若市值大於目標，缺口為負數，視為 0)
             const positiveGaps = rows.map(r => Math.max(0, r.gap));
             const sumPositiveGaps = positiveGaps.reduce((sum, g) => sum + g, 0);
 
             const finalRows = rows.map((r, i) => {
                 const gapPct = sumPositiveGaps > 0 ? positiveGaps[i] / sumPositiveGaps : 0;
-                // Excel G列： ROUND(實際資金 * 缺口佔比)
                 const buyAmount = Math.round(actualNewMoney * gapPct);
                 return { ...r, gapPct, buyAmount };
             });
@@ -644,7 +631,6 @@
                     <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                         <SectionTitle title="資產再平衡計算機" subtitle="Rebalancing Calculator" className="mb-0" />
                         
-                        {/* 隱藏的原生上傳元件與自訂按鈕 */}
                         <input 
                             type="file" 
                             accept="image/*" 
@@ -667,7 +653,7 @@
                     </div>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-                        <Card className="p-4 md:p-6 bg-amber-50/50 dark:bg-amber-900/10 border-amber-200/50 dark:border-amber-800/30">
+                        <Card className="p-4 md:p-6 bg-amber-50/50 dark:bg-amber-900/20 border-amber-200/50 dark:border-amber-800/30">
                             <label className="text-[10px] md:text-xs text-amber-800 dark:text-amber-500 font-bold uppercase tracking-widest mb-2 block">1. 準備投入新資金 (USD)</label>
                             <div className="flex items-center bg-white dark:bg-[#121212] border border-amber-200 dark:border-amber-700/50 rounded-xl px-4 py-3 focus-within:border-amber-500 focus-within:ring-1 focus-within:ring-amber-500 smooth-transition shadow-sm">
                                 <span className="text-stone-400 mr-2 font-medium">$</span>
@@ -703,7 +689,6 @@
                                         <th className="py-3 px-4 text-right">目標比例</th>
                                         <th className="py-3 px-4 text-right bg-amber-100/60 dark:bg-amber-900/30 text-amber-900 dark:text-amber-200">2. 目前市值(USD)</th>
                                         <th className="py-3 px-4 text-right">目標總值</th>
-                                        {/* 隱藏資金缺口但底層保留 */}
                                         <th className="py-3 px-4 text-right">缺口佔比</th>
                                         <th className="py-3 px-4 text-right bg-sky-100/60 dark:bg-sky-900/30 text-sky-900 dark:text-sky-200">本月應買入(USD)</th>
                                     </tr>
@@ -714,8 +699,7 @@
                                             <td className="py-2.5 px-4 font-bold font-sans text-stone-900 dark:text-stone-100">{row.symbol}</td>
                                             <td className="py-2.5 px-4 text-right text-stone-600 dark:text-stone-400">{row.targetPct.toFixed(2)}%</td>
                                             
-                                            {/* 黃色輸入區 (目前市值) */}
-                                            <td className="py-2 px-2 bg-amber-50/30 dark:bg-amber-900/10">
+                                            <td className="py-2 px-2 bg-amber-50/40 dark:bg-amber-900/20">
                                                 <div className="relative flex items-center bg-white dark:bg-[#121212] border border-amber-200 dark:border-amber-700/50 rounded flex-1 focus-within:border-amber-500 smooth-transition max-w-[120px] ml-auto">
                                                     <input 
                                                         type="number" 
@@ -727,24 +711,20 @@
                                             </td>
 
                                             <td className="py-2.5 px-4 text-right text-stone-600 dark:text-stone-400">{row.targetValue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                                            {/* 隱藏資金缺口 */}
                                             <td className="py-2.5 px-4 text-right text-stone-600 dark:text-stone-400">{(row.gapPct).toLocaleString(undefined, {minimumFractionDigits: 6, maximumFractionDigits: 6})}</td>
                                             
-                                            {/* 藍色結果區 (應買入金額) */}
-                                            <td className="py-2.5 px-4 text-right bg-sky-50/50 dark:bg-sky-900/10 font-bold text-sky-700 dark:text-sky-400 text-sm md:text-base">
+                                            <td className="py-2.5 px-4 text-right bg-sky-50/50 dark:bg-sky-900/20 font-bold text-sky-700 dark:text-sky-400 text-sm md:text-base">
                                                 {row.buyAmount.toLocaleString()}
                                             </td>
                                         </tr>
                                     ))}
-                                    {/* 總計列 */}
-                                    <tr className="bg-stone-50 dark:bg-stone-800/50 font-bold">
+                                    <tr className="bg-stone-50 dark:bg-stone-800/50 font-bold border-t border-stone-200 dark:border-stone-700">
                                         <td className="py-3 px-4 font-sans">總計</td>
                                         <td className="py-3 px-4 text-right">100.00%</td>
-                                        <td className="py-3 px-4 text-right text-amber-700 dark:text-amber-500 pr-4">{totalCurrent.toLocaleString()}</td>
+                                        <td className="py-3 px-4 text-right text-amber-700 dark:text-amber-500 pr-4 bg-amber-50/40 dark:bg-amber-900/20">{totalCurrent.toLocaleString()}</td>
                                         <td className="py-3 px-4 text-right">{targetTotal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                                        {/* 隱藏資金缺口 */}
                                         <td className="py-3 px-4 text-right">1.000000</td>
-                                        <td className="py-3 px-4 text-right text-sky-700 dark:text-sky-400 text-sm md:text-base pr-4">
+                                        <td className="py-3 px-4 text-right text-sky-700 dark:text-sky-400 text-sm md:text-base pr-4 bg-sky-50/50 dark:bg-sky-900/20">
                                             {finalRows.reduce((sum, r) => sum + r.buyAmount, 0).toLocaleString()}
                                         </td>
                                     </tr>
@@ -761,7 +741,6 @@
             const [addDate, setAddDate] = useState(() => new Date().toISOString().split('T')[0]);
             const [addAmount, setAddAmount] = useState('');
 
-            // 計算統計數據
             const stats = useMemo(() => {
                 let totalInvested = 0;
                 let historicalReturned = 0;
@@ -811,7 +790,6 @@
             const sortedRecords = [...records].sort((a, b) => {
                 if (!a.date) return 1;
                 if (!b.date) return -1;
-                // 由最新到最舊排序
                 return new Date(b.date) - new Date(a.date);
             });
 
@@ -864,7 +842,6 @@
                         </Card>
                     </div>
 
-                    {/* 操作區 */}
                     <Card className="p-0 overflow-hidden flex flex-col">
                         <div className="p-4 md:p-6 border-b border-stone-200 dark:border-stone-800 flex justify-between items-center bg-stone-50/50 dark:bg-stone-900/30">
                             <div>
@@ -879,7 +856,6 @@
                             </button>
                         </div>
                         
-                        {/* 快速新增小介面 */}
                         {showAddForm && (
                             <div className="bg-stone-100/70 dark:bg-stone-800/50 p-4 md:px-6 border-b border-stone-200 dark:border-stone-800 flex flex-col sm:flex-row gap-3 items-end animate-[fadeIn_0.2s_ease-out]">
                                 <div className="flex-1 w-full space-y-1.5">
@@ -981,7 +957,7 @@
             );
         }
 
-        function DashboardTab({ expenses, setExpenses, mpf, totalIncome, availableSavings, fireYears, target, spareCash, setSpareCash, latestMarketValue, outstandingLoan, netWorthExcludeLoan, netWorthIncludeLoan }) {
+        function DashboardTab({ expenses, setExpenses, mpf, totalIncome, availableSavings, targetHit, target, spareCash, setSpareCash, latestMarketValue, outstandingLoan, netWorthExcludeLoan, netWorthIncludeLoan }) {
             const numExpenses = num(expenses);
             const numMpf = num(mpf);
             
@@ -989,12 +965,24 @@
             const mpfPct = Math.max(0, (numMpf / totalIncome) * 100);
             const savingPct = Math.max(0, (availableSavings / totalIncome) * 100);
 
+            const hit = targetHit;
+            const y = hit ? Math.floor(hit.monthsElapsed / 12) : 0;
+            const m = hit ? hit.monthsElapsed % 12 : 0;
+
             return (
                 <div className="space-y-6 md:space-y-8">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <Card className="flex flex-col justify-center">
                             <p className="text-xs text-stone-500 tracking-widest mb-1 flex items-center gap-1"><Icons.TrendingUp/> 距離實質達標</p>
-                            <div className="text-4xl md:text-5xl font-bold text-stone-900 dark:text-stone-100 mt-2">{fireYears > 0 ? fireYears : '—'}<span className="text-lg md:text-xl ml-1 text-stone-400 font-normal">年</span></div>
+                            <div className="text-3xl md:text-4xl font-bold text-stone-900 dark:text-stone-100 mt-2">
+                                {hit ? (
+                                    <div className="flex items-baseline">
+                                        {y > 0 && <span>{y}<span className="text-base md:text-lg mx-1 text-stone-400 font-normal">年</span></span>}
+                                        {m > 0 && <span>{m}<span className="text-base md:text-lg ml-1 text-stone-400 font-normal">個月</span></span>}
+                                        {y === 0 && m === 0 && <span>已達標</span>}
+                                    </div>
+                                ) : '—'}
+                            </div>
                         </Card>
                         <Card className="flex flex-col justify-center border-b-4 border-b-sage-500 dark:border-b-sage-400">
                             <p className="text-xs text-stone-500 tracking-widest mb-1 flex items-center gap-1"><Icons.Dashboard/> 流動淨資產</p>
@@ -1113,342 +1101,6 @@
                                     </div>
                                 </div>
                             </div>
-                        </Card>
-                    </div>
-                </div>
-            );
-        }
-
-        function CalculatorTab({ 
-            isDark, currentAge, setCurrentAge,
-            autoStage1Months, autoStage2Months,
-            contributionStage2, setContributionStage2,
-            contributionStage3, setContributionStage3,
-            annualReturn, setAnnualReturn, inflationRate, setInflationRate,
-            availableSavings, setExpenses, totalIncome, mpf, chartData, target, setTarget,
-            latestMarketValue 
-        }) {
-            const chartRef = useRef(null);
-            const chartInstance = useRef(null);
-
-            const [localStage1, setLocalStage1] = useState(availableSavings);
-
-            useEffect(() => {
-                if (num(localStage1) !== availableSavings) {
-                    setLocalStage1(availableSavings);
-                }
-            }, [availableSavings]);
-
-            const handleStage1Change = (val) => {
-                setLocalStage1(val);
-                if (val === '') {
-                    setExpenses(totalIncome - num(mpf));
-                } else {
-                    setExpenses(totalIncome - num(mpf) - Number(val));
-                }
-            };
-
-            useEffect(() => {
-                if (!chartRef.current) return;
-                if (chartInstance.current) chartInstance.current.destroy();
-
-                const ctx = chartRef.current.getContext('2d');
-                const displayData = chartData.data.slice(0, 36);
-                const labels = displayData.map(d => `${d.age}歲`);
-
-                const nominalColor = isDark ? '#799477' : '#5c755a'; 
-                const realColor = isDark ? '#8ba2b3' : '#6b8496'; 
-                const principalColor = isDark ? '#5c5952' : '#a8a49c'; 
-                const targetColor = isDark ? '#cfa293' : '#b87a67'; 
-                const gridColor = isDark ? '#2e2c29' : '#e8e6e1';
-                
-                const safeTarget = num(target);
-
-                chartInstance.current = new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: labels,
-                        datasets: [
-                            {
-                                label: '名目總資產',
-                                data: displayData.map(d => d.總資產),
-                                borderColor: nominalColor,
-                                backgroundColor: isDark ? 'rgba(121, 148, 119, 0.1)' : 'rgba(92, 117, 90, 0.08)',
-                                fill: true,
-                                tension: 0.3,
-                                borderWidth: 3,
-                                pointRadius: 0,
-                                pointHoverRadius: 6,
-                                pointHoverBackgroundColor: nominalColor
-                            },
-                            {
-                                label: '實質購買力',
-                                data: displayData.map(d => d.實質購買力),
-                                borderColor: realColor,
-                                borderDash: [5, 5],
-                                fill: false,
-                                tension: 0.3,
-                                borderWidth: 2,
-                                pointRadius: 0,
-                                pointHoverRadius: 6
-                            },
-                            {
-                                label: '累計投入本金',
-                                data: displayData.map(d => d.投入本金),
-                                borderColor: principalColor,
-                                fill: false,
-                                tension: 0.3,
-                                borderWidth: 2,
-                                pointRadius: 0
-                            },
-                            {
-                                label: `目標: ${safeTarget/10000}萬`,
-                                data: displayData.map(() => safeTarget),
-                                borderColor: targetColor,
-                                borderDash: [2, 2],
-                                fill: false,
-                                tension: 0,
-                                borderWidth: 1.5,
-                                pointRadius: 0
-                            }
-                        ]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        interaction: { mode: 'index', intersect: false },
-                        plugins: {
-                            legend: { 
-                                display: true, 
-                                position: 'top', 
-                                align: 'center',
-                                labels: { 
-                                    color: isDark ? '#a8a49c' : '#5c5952',
-                                    usePointStyle: true,
-                                    boxWidth: 8,
-                                    font: { family: 'Inter', size: 10 }
-                                } 
-                            },
-                            tooltip: {
-                                backgroundColor: isDark ? 'rgba(28, 27, 26, 0.95)' : 'rgba(255, 255, 255, 0.95)',
-                                titleColor: isDark ? '#e8e6e1' : '#1c1b1a',
-                                bodyColor: isDark ? '#d6d3cd' : '#5c5952',
-                                borderColor: isDark ? '#45423d' : '#e8e6e1',
-                                borderWidth: 1,
-                                cornerRadius: 8,
-                                padding: 12,
-                                titleFont: { family: 'Inter', size: 12, weight: 'bold' },
-                                bodyFont: { family: 'Inter', size: 11, weight: '500' },
-                                boxPadding: 6,
-                                callbacks: {
-                                    title: (context) => `預測年齡 ${context[0].label}`,
-                                    label: function(context) {
-                                        let label = context.dataset.label || '';
-                                        if (context.parsed.y !== null) {
-                                            label += `  $${(context.parsed.y / 10000).toFixed(1)} 萬`;
-                                            if (context.dataset.label === '實質購買力') {
-                                                const fireIncome = (context.parsed.y * 0.04) / 12;
-                                                label += `  (被動: $${Math.round(fireIncome).toLocaleString()}/月)`;
-                                            }
-                                        }
-                                        return label;
-                                    }
-                                }
-                            }
-                        },
-                        scales: {
-                            x: { grid: { display: false }, ticks: { color: principalColor, font: { family: 'Inter', size: 10 }, maxTicksLimit: 8 } },
-                            y: { 
-                                border: { display: false },
-                                grid: { color: gridColor, drawBorder: false }, 
-                                ticks: { 
-                                    color: principalColor, font: { family: 'Inter', size: 10 },
-                                    callback: function(value) { return value / 10000 + ' 萬'; }
-                                } 
-                            }
-                        }
-                    }
-                });
-                return () => { if (chartInstance.current) chartInstance.current.destroy(); };
-            }, [chartData, isDark, target]);
-
-            return (
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-[fadeIn_0.5s_ease-out] items-start">
-                    
-                    {/* 左欄：中控台 */}
-                    <div className="lg:col-span-1 space-y-6">
-                        <Card className="p-5 md:p-6 space-y-6">
-                            <h3 className="text-lg font-bold text-stone-800 dark:text-stone-200 flex items-center gap-2">
-                                <Icons.Dashboard/> 三階段 FIRE 引擎
-                            </h3>
-                            
-                            <div className="h-[72px]">
-                                <CalcInput label="自訂終極目標 (實質購買力 HKD)" value={target} onChange={(e)=>setTarget(e.target.value === '' ? '' : Number(e.target.value))} />
-                            </div>
-                            
-                            {/* 使用 items-end 讓右側的 IB 本金視覺上下移，與左側輸入框對齊 */}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
-                                <div className="h-[72px]">
-                                    <CalcInput 
-                                        label="當前年齡" 
-                                        value={currentAge} 
-                                        onChange={(e)=>setCurrentAge(e.target.value === '' ? '' : Number(e.target.value))}
-                                        showStepper={true}
-                                        onMinus={() => setCurrentAge(prev => num(prev) > 0 ? num(prev) - 1 : 0)}
-                                        onPlus={() => setCurrentAge(prev => num(prev) + 1)}
-                                    />
-                                </div>
-                                
-                                <div className="space-y-1.5 w-full h-[72px] flex flex-col justify-end">
-                                    <label className="text-[11px] font-bold text-stone-500 tracking-widest uppercase flex justify-between items-end pb-1">
-                                        <span>起始滾存本金 (IB)</span>
-                                        <span className="text-[10px] text-sage-500 dark:text-sage-400 tracking-normal normal-case flex items-center gap-1 font-bold">
-                                            <Icons.Activity/> XIRR 連動
-                                        </span>
-                                    </label>
-                                    <div className="flex items-center bg-stone-100/50 dark:bg-stone-800/30 border border-transparent rounded-lg px-3 py-2.5 cursor-not-allowed h-10 md:h-[42px]">
-                                        <span className="text-stone-400 dark:text-stone-500 mr-2 text-sm">$</span>
-                                        <div className="w-full font-semibold text-sage-600 dark:text-sage-400 opacity-90 truncate">
-                                            {latestMarketValue.toLocaleString()}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* 階段投入 */}
-                            <div className="space-y-3">
-                                {/* 一階 */}
-                                <div className="p-3 md:p-4 bg-stone-50 dark:bg-stone-800/30 border border-stone-200/50 dark:border-stone-700/50 rounded-lg">
-                                    <div className="flex justify-between items-center mb-3">
-                                        <span className="text-[11px] font-bold text-stone-500 uppercase tracking-widest">一階：舊債併行期</span>
-                                        <span className="text-[10px] text-sage-500 dark:text-sage-400 flex items-center gap-1"><Icons.Calendar/> 債務連動</span>
-                                    </div>
-                                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                                        <div className="flex-1 flex items-center bg-stone-200/40 dark:bg-stone-800/60 border border-transparent rounded px-2 py-2 cursor-not-allowed">
-                                            <span className="w-full text-center font-bold text-sm text-stone-500 dark:text-stone-400">{autoStage1Months}</span>
-                                            <span className="text-[10px] text-stone-500/70 ml-1 shrink-0">個月</span>
-                                        </div>
-                                        <div className="flex-[1.5] flex items-center bg-white dark:bg-[#121212] border border-stone-200 dark:border-stone-700 rounded px-2 py-2 focus-within:border-sage-500 smooth-transition">
-                                            <span className="text-[10px] text-stone-400 mr-1 shrink-0">投入</span>
-                                            <input type="number" value={localStage1} onChange={e=>handleStage1Change(e.target.value)} placeholder="0" className="w-full bg-transparent outline-none text-right font-medium text-sm text-dusty-600 dark:text-dusty-400 placeholder-stone-400/50" />
-                                        </div>
-                                    </div>
-                                </div>
-                                {/* 二階 */}
-                                <div className="p-3 md:p-4 bg-stone-50 dark:bg-stone-800/30 border border-stone-200/50 dark:border-stone-700/50 rounded-lg">
-                                    <div className="flex justify-between items-center mb-3">
-                                        <span className="text-[11px] font-bold text-stone-500 uppercase tracking-widest">二階：常規還款+成功費期</span>
-                                        <span className="text-[10px] text-sage-500 dark:text-sage-400 flex items-center gap-1"><Icons.Calendar/> 債務連動</span>
-                                    </div>
-                                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                                        <div className="flex-1 flex items-center bg-stone-200/40 dark:bg-stone-800/60 border border-transparent rounded px-2 py-2 cursor-not-allowed">
-                                            <span className="w-full text-center font-bold text-sm text-stone-500 dark:text-stone-400">{autoStage2Months}</span>
-                                            <span className="text-[10px] text-stone-500/70 ml-1 shrink-0">個月</span>
-                                        </div>
-                                        <div className="flex-[1.5] flex items-center bg-white dark:bg-[#121212] border border-stone-200 dark:border-stone-700 rounded px-2 py-2 focus-within:border-sage-500 smooth-transition">
-                                            <span className="text-[10px] text-stone-400 mr-1 shrink-0">投入</span>
-                                            <input type="number" value={contributionStage2} onChange={e=>setContributionStage2(e.target.value === '' ? '' : Number(e.target.value))} placeholder="0" className="w-full bg-transparent outline-none text-right font-medium text-sm text-stone-900 dark:text-stone-100 placeholder-stone-400/50" />
-                                        </div>
-                                    </div>
-                                </div>
-                                {/* 三階 */}
-                                <div className="p-3 md:p-4 bg-stone-50 dark:bg-stone-800/30 border border-stone-200/50 dark:border-stone-700/50 rounded-lg">
-                                    <div className="flex justify-between items-center mb-3">
-                                        <span className="text-[11px] font-bold text-stone-500 uppercase tracking-widest">三階：債務全清後 (純儲蓄)</span>
-                                    </div>
-                                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                                        <div className="flex-1 flex items-center justify-center bg-transparent px-2 py-2">
-                                            <span className="text-xs text-stone-500 w-full text-center">餘下歲月</span>
-                                        </div>
-                                        <div className="flex-[1.5] flex items-center bg-white dark:bg-[#121212] border border-stone-200 dark:border-stone-700 rounded px-2 py-2 focus-within:border-sage-500 smooth-transition">
-                                            <span className="text-[10px] text-stone-400 mr-1 shrink-0">投入</span>
-                                            <input type="number" value={contributionStage3} onChange={e=>setContributionStage3(e.target.value === '' ? '' : Number(e.target.value))} placeholder="0" className="w-full bg-transparent outline-none text-right font-medium text-sm text-stone-900 dark:text-stone-100 placeholder-stone-400/50" />
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* 滑桿區 */}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-4 border-t border-stone-200 dark:border-stone-800">
-                                <div>
-                                    <label className="text-[11px] text-stone-500 tracking-widest mb-3 font-bold uppercase flex justify-between items-center">
-                                        年化報酬率 (XIRR)
-                                    </label>
-                                    <div className="flex flex-col gap-3">
-                                        <div className="bg-stone-100 dark:bg-stone-800/50 rounded-md px-3 py-2 border border-stone-200 dark:border-stone-700 text-sage-600 dark:text-sage-400 font-bold text-center">
-                                            {annualReturn} %
-                                        </div>
-                                        <input type="range" min="1" max="15" step="0.5" value={num(annualReturn)} onChange={(e) => setAnnualReturn(Number(e.target.value))} className="w-full accent-sage" />
-                                    </div>
-                                </div>
-                                <div>
-                                    <label className="text-[11px] text-stone-500 tracking-widest mb-3 font-bold uppercase flex justify-between items-center">
-                                        通脹率 (Inflation)
-                                    </label>
-                                    <div className="flex flex-col gap-3">
-                                        <div className="bg-stone-100 dark:bg-stone-800/50 rounded-md px-3 py-2 border border-stone-200 dark:border-stone-700 text-clay-600 dark:text-clay-400 font-bold text-center">
-                                            {inflationRate} %
-                                        </div>
-                                        <input type="range" min="0" max="6" step="0.1" value={num(inflationRate)} onChange={(e) => setInflationRate(Number(e.target.value))} className="w-full accent-clay" />
-                                    </div>
-                                </div>
-                            </div>
-                        </Card>
-                    </div>
-
-                    {/* 右欄：圖表與里程碑 */}
-                    <div className="lg:col-span-2 space-y-6">
-                        <Card className="p-4 md:p-6 flex flex-col h-full">
-                            <SectionTitle title="複利與通脹折算曲線 (三階段模型)" subtitle="Growth Trajectory" />
-                            <div className="w-full h-[300px] sm:h-[350px] lg:h-[450px]">
-                                <canvas ref={chartRef}></canvas>
-                            </div>
-
-                            <div className="mt-8 border-t border-stone-100 dark:border-stone-800 pt-6 space-y-6">
-                                <h3 className="text-sm font-bold text-stone-800 dark:text-stone-200 tracking-wider flex items-center gap-2">
-                                    <Icons.TrendingUp/> 實質購買力進度碑
-                                </h3>
-                                
-                                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-                                    {[1000000, 2000000, 3000000, 6000000].map((milestone) => {
-                                        const mData = chartData.data.find(d => d.實質購買力 >= milestone);
-                                        return (
-                                            <div key={milestone} className="bg-stone-50 dark:bg-stone-800/30 p-3 md:p-4 rounded-xl border border-stone-200/50 dark:border-stone-700/50 text-center flex flex-col justify-center hover:border-stone-300 dark:hover:border-stone-600 smooth-transition cursor-default">
-                                                <div className="text-[10px] md:text-[11px] text-stone-500 dark:text-stone-400 mb-1.5 font-medium tracking-widest">{milestone / 10000}萬 實質進度</div>
-                                                {mData ? (
-                                                    <>
-                                                        <div className="font-bold text-lg md:text-xl text-stone-900 dark:text-stone-100">{mData.age} 歲</div>
-                                                        <div className="text-[9px] md:text-[10px] text-stone-500 mt-1 uppercase tracking-wider">第 {mData.year} 年</div>
-                                                    </>
-                                                ) : (
-                                                    <div className="font-bold text-lg md:text-xl text-stone-300 dark:text-stone-700">—</div>
-                                                )}
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                                
-                                <div className="p-5 md:p-8 rounded-xl border border-sage-200 dark:border-sage-800/50 bg-sage-50/50 dark:bg-sage-900/10 shadow-sm relative overflow-hidden flex flex-col sm:flex-row items-center justify-between gap-6 sm:gap-4 md:gap-6 hover:shadow-md smooth-transition">
-                                    <div className="absolute top-0 right-0 w-24 md:w-32 h-24 md:h-32 bg-sage-200/40 dark:bg-sage-800/30 rounded-bl-full -mr-12 md:-mr-16 -mt-12 md:-mt-16 pointer-events-none"></div>
-                                    <div className="absolute bottom-0 left-0 w-16 md:w-24 h-16 md:h-24 bg-sage-200/30 dark:bg-sage-800/20 rounded-tr-full -ml-8 md:-ml-12 -mb-8 md:-mb-12 pointer-events-none"></div>
-                                    
-                                    <div className="flex-1 z-10 w-full text-center sm:text-left">
-                                        <p className="text-[10px] md:text-xs text-stone-500 dark:text-stone-400 tracking-widest mb-1.5 md:mb-2 font-bold uppercase">達標 {(num(target)/10000)}萬(實質) 需時</p>
-                                        <div className="text-4xl md:text-5xl font-black text-sage-600 dark:text-sage-400 my-1 md:my-2">{chartData.years > 0 ? chartData.years : '—'}<span className="text-lg md:text-xl ml-2 text-sage-500/70 font-normal">年</span></div>
-                                        <p className="text-[10px] md:text-xs text-stone-500">預計達成年齡: <strong className="text-stone-700 dark:text-stone-300 text-sm md:text-base ml-1">{num(currentAge) + chartData.years} 歲</strong></p>
-                                    </div>
-
-                                    <div className="hidden sm:block w-px h-16 md:h-24 bg-sage-200/80 dark:bg-sage-800/80 z-10"></div>
-                                    <div className="sm:hidden h-px w-full bg-sage-200/80 dark:bg-sage-800/80 z-10"></div>
-
-                                    <div className="flex-1 z-10 w-full text-center sm:text-left">
-                                        <p className="text-[10px] md:text-xs text-stone-500 dark:text-stone-400 tracking-widest mb-1.5 md:mb-2 font-bold uppercase">達標後 4% 被動收入</p>
-                                        <div className="text-3xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-sage-600 dark:text-sage-400 my-1 md:my-2"><span className="text-lg sm:text-base md:text-lg lg:text-xl mr-1 opacity-60 font-normal">HKD</span>{Math.round((num(target) * 0.04) / 12).toLocaleString()} <span className="text-sm md:text-base font-normal opacity-80">/ 月</span></div>
-                                        <p className="text-[9px] md:text-[11px] text-sage-600/70 dark:text-sage-500 mt-1 md:mt-2">基於實質購買力計算，具備抗通脹能力</p>
-                                    </div>
-                                </div>
-                            </div>
-
                         </Card>
                     </div>
                 </div>
@@ -1605,6 +1257,360 @@
                                     </tbody>
                                 </table>
                             </div>
+                        </Card>
+                    </div>
+                </div>
+            );
+        }
+
+        function CalculatorTab({ 
+            isDark, currentAge, setCurrentAge,
+            autoStage1Months, autoStage2Months,
+            contributionStage2, setContributionStage2,
+            contributionStage3, setContributionStage3,
+            annualReturn, setAnnualReturn, inflationRate, setInflationRate,
+            availableSavings, setExpenses, totalIncome, mpf, chartData, target, setTarget,
+            latestMarketValue 
+        }) {
+            const chartRef = useRef(null);
+            const chartInstance = useRef(null);
+
+            const [localStage1, setLocalStage1] = useState(availableSavings);
+
+            useEffect(() => {
+                if (num(localStage1) !== availableSavings) {
+                    setLocalStage1(availableSavings);
+                }
+            }, [availableSavings]);
+
+            const handleStage1Change = (val) => {
+                setLocalStage1(val);
+                if (val === '') {
+                    setExpenses(totalIncome - num(mpf));
+                } else {
+                    setExpenses(totalIncome - num(mpf) - Number(val));
+                }
+            };
+
+            useEffect(() => {
+                if (!chartRef.current) return;
+                if (chartInstance.current) chartInstance.current.destroy();
+
+                const ctx = chartRef.current.getContext('2d');
+                const displayData = chartData.data;
+                const labels = displayData.map(d => d.monthsElapsed);
+
+                const nominalColor = isDark ? '#799477' : '#5c755a'; 
+                const realColor = isDark ? '#8ba2b3' : '#6b8496'; 
+                const principalColor = isDark ? '#5c5952' : '#a8a49c'; 
+                const targetColor = isDark ? '#cfa293' : '#b87a67'; 
+                const gridColor = isDark ? '#2e2c29' : '#e8e6e1';
+                
+                const safeTarget = num(target);
+
+                chartInstance.current = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: '名目總資產',
+                                data: displayData.map(d => d.總資產),
+                                borderColor: nominalColor,
+                                backgroundColor: isDark ? 'rgba(121, 148, 119, 0.1)' : 'rgba(92, 117, 90, 0.08)',
+                                fill: true,
+                                tension: 0.3,
+                                borderWidth: 3,
+                                pointRadius: 0,
+                                pointHoverRadius: 6,
+                                pointHoverBackgroundColor: nominalColor
+                            },
+                            {
+                                label: '實質購買力',
+                                data: displayData.map(d => d.實質購買力),
+                                borderColor: realColor,
+                                borderDash: [5, 5],
+                                fill: false,
+                                tension: 0.3,
+                                borderWidth: 2,
+                                pointRadius: 0,
+                                pointHoverRadius: 6
+                            },
+                            {
+                                label: '累計投入本金',
+                                data: displayData.map(d => d.投入本金),
+                                borderColor: principalColor,
+                                fill: false,
+                                tension: 0.3,
+                                borderWidth: 2,
+                                pointRadius: 0
+                            },
+                            {
+                                label: `目標: ${safeTarget/10000}萬`,
+                                data: displayData.map(() => safeTarget),
+                                borderColor: targetColor,
+                                borderDash: [2, 2],
+                                fill: false,
+                                tension: 0,
+                                borderWidth: 1.5,
+                                pointRadius: 0
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: { mode: 'index', intersect: false },
+                        plugins: {
+                            legend: { 
+                                display: true, 
+                                position: 'top', 
+                                align: 'center',
+                                labels: { 
+                                    color: isDark ? '#a8a49c' : '#5c5952',
+                                    usePointStyle: true,
+                                    boxWidth: 8,
+                                    font: { family: 'Inter', size: 10 }
+                                } 
+                            },
+                            tooltip: {
+                                backgroundColor: isDark ? 'rgba(28, 27, 26, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+                                titleColor: isDark ? '#e8e6e1' : '#1c1b1a',
+                                bodyColor: isDark ? '#d6d3cd' : '#5c5952',
+                                borderColor: isDark ? '#45423d' : '#e8e6e1',
+                                borderWidth: 1,
+                                cornerRadius: 8,
+                                padding: 12,
+                                titleFont: { family: 'Inter', size: 12, weight: 'bold' },
+                                bodyFont: { family: 'Inter', size: 11, weight: '500' },
+                                boxPadding: 6,
+                                callbacks: {
+                                    title: (context) => {
+                                        const d = displayData[context[0].dataIndex];
+                                        return `預測時間: ${d.yearStr} (${d.ageStr})`;
+                                    },
+                                    label: function(context) {
+                                        let label = context.dataset.label || '';
+                                        if (context.parsed.y !== null) {
+                                            label += `  $${(context.parsed.y / 10000).toFixed(1)} 萬`;
+                                            if (context.dataset.label === '實質購買力') {
+                                                const fireIncome = (context.parsed.y * 0.04) / 12;
+                                                label += `  (被動: $${Math.round(fireIncome).toLocaleString()}/月)`;
+                                            }
+                                        }
+                                        return label;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: { 
+                                grid: { display: false }, 
+                                ticks: { 
+                                    color: principalColor, 
+                                    font: { family: 'Inter', size: 10 }, 
+                                    maxRotation: 0,
+                                    callback: function(val, index) {
+                                        const d = displayData[index];
+                                        return d && d.monthsElapsed % 12 === 0 ? d.age + '歲' : null;
+                                    }
+                                } 
+                            },
+                            y: { 
+                                border: { display: false },
+                                grid: { color: gridColor, drawBorder: false }, 
+                                ticks: { 
+                                    color: principalColor, font: { family: 'Inter', size: 10 },
+                                    callback: function(value) { return value / 10000 + ' 萬'; }
+                                } 
+                            }
+                        }
+                    }
+                });
+                return () => { if (chartInstance.current) chartInstance.current.destroy(); };
+            }, [chartData, isDark, target]);
+
+            const hit = chartData.targetHit;
+            const y = hit ? Math.floor(hit.monthsElapsed / 12) : 0;
+            const m = hit ? hit.monthsElapsed % 12 : 0;
+
+            return (
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-[fadeIn_0.5s_ease-out] items-start">
+                    
+                    <div className="lg:col-span-1 space-y-6">
+                        <Card className="p-5 md:p-6 space-y-6">
+                            <h3 className="text-lg font-bold text-stone-800 dark:text-stone-200 flex items-center gap-2">
+                                <Icons.Dashboard/> 三階段 FIRE 引擎
+                            </h3>
+                            
+                            <div className="h-[72px]">
+                                <CalcInput label="自訂終極目標 (實質購買力 HKD)" value={target} onChange={(e)=>setTarget(e.target.value === '' ? '' : Number(e.target.value))} />
+                            </div>
+                            
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
+                                <div className="h-[72px]">
+                                    <CalcInput 
+                                        label="當前年齡" 
+                                        value={currentAge} 
+                                        onChange={(e)=>setCurrentAge(e.target.value === '' ? '' : Number(e.target.value))}
+                                        showStepper={true}
+                                        onMinus={() => setCurrentAge(prev => num(prev) > 0 ? num(prev) - 1 : 0)}
+                                        onPlus={() => setCurrentAge(prev => num(prev) + 1)}
+                                    />
+                                </div>
+                                
+                                <div className="space-y-1.5 w-full h-[72px] flex flex-col justify-end">
+                                    <label className="text-[11px] font-bold text-stone-500 tracking-widest uppercase flex justify-between items-end pb-1">
+                                        <span>起始滾存本金 (IB)</span>
+                                        <span className="text-[10px] text-sage-500 dark:text-sage-400 tracking-normal normal-case flex items-center gap-1 font-bold">
+                                            <Icons.Activity/> XIRR 連動
+                                        </span>
+                                    </label>
+                                    <div className="flex items-center bg-stone-100/50 dark:bg-stone-800/30 border border-transparent rounded-lg px-3 py-2.5 cursor-not-allowed h-10 md:h-[42px]">
+                                        <span className="text-stone-400 dark:text-stone-500 mr-2 text-sm">$</span>
+                                        <div className="w-full font-semibold text-sage-600 dark:text-sage-400 opacity-90 truncate">
+                                            {latestMarketValue.toLocaleString()}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="space-y-3">
+                                <div className="p-3 md:p-4 bg-stone-50 dark:bg-stone-800/30 border border-stone-200/50 dark:border-stone-700/50 rounded-lg">
+                                    <div className="flex justify-between items-center mb-3">
+                                        <span className="text-[11px] font-bold text-stone-500 uppercase tracking-widest">一階：舊債併行期</span>
+                                        <span className="text-[10px] text-sage-500 dark:text-sage-400 flex items-center gap-1"><Icons.Calendar/> 債務連動</span>
+                                    </div>
+                                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                                        <div className="flex-1 flex items-center bg-stone-200/40 dark:bg-stone-800/60 border border-transparent rounded px-2 py-2 cursor-not-allowed">
+                                            <span className="w-full text-center font-bold text-sm text-stone-500 dark:text-stone-400">{autoStage1Months}</span>
+                                            <span className="text-[10px] text-stone-500/70 ml-1 shrink-0">個月</span>
+                                        </div>
+                                        <div className="flex-[1.5] flex items-center bg-white dark:bg-[#121212] border border-stone-200 dark:border-stone-700 rounded px-2 py-2 focus-within:border-sage-500 smooth-transition">
+                                            <span className="text-[10px] text-stone-400 mr-1 shrink-0">投入</span>
+                                            <input type="number" value={localStage1} onChange={e=>handleStage1Change(e.target.value)} placeholder="0" className="w-full bg-transparent outline-none text-right font-medium text-sm text-dusty-600 dark:text-dusty-400 placeholder-stone-400/50" />
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="p-3 md:p-4 bg-stone-50 dark:bg-stone-800/30 border border-stone-200/50 dark:border-stone-700/50 rounded-lg">
+                                    <div className="flex justify-between items-center mb-3">
+                                        <span className="text-[11px] font-bold text-stone-500 uppercase tracking-widest">二階：常規還款+成功費期</span>
+                                        <span className="text-[10px] text-sage-500 dark:text-sage-400 flex items-center gap-1"><Icons.Calendar/> 債務連動</span>
+                                    </div>
+                                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                                        <div className="flex-1 flex items-center bg-stone-200/40 dark:bg-stone-800/60 border border-transparent rounded px-2 py-2 cursor-not-allowed">
+                                            <span className="w-full text-center font-bold text-sm text-stone-500 dark:text-stone-400">{autoStage2Months}</span>
+                                            <span className="text-[10px] text-stone-500/70 ml-1 shrink-0">個月</span>
+                                        </div>
+                                        <div className="flex-[1.5] flex items-center bg-white dark:bg-[#121212] border border-stone-200 dark:border-stone-700 rounded px-2 py-2 focus-within:border-sage-500 smooth-transition">
+                                            <span className="text-[10px] text-stone-400 mr-1 shrink-0">投入</span>
+                                            <input type="number" value={contributionStage2} onChange={e=>setContributionStage2(e.target.value === '' ? '' : Number(e.target.value))} placeholder="0" className="w-full bg-transparent outline-none text-right font-medium text-sm text-stone-900 dark:text-stone-100 placeholder-stone-400/50" />
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="p-3 md:p-4 bg-stone-50 dark:bg-stone-800/30 border border-stone-200/50 dark:border-stone-700/50 rounded-lg">
+                                    <div className="flex justify-between items-center mb-3">
+                                        <span className="text-[11px] font-bold text-stone-500 uppercase tracking-widest">三階：債務全清後 (純儲蓄)</span>
+                                    </div>
+                                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                                        <div className="flex-1 flex items-center justify-center bg-transparent px-2 py-2">
+                                            <span className="text-xs text-stone-500 w-full text-center">餘下歲月</span>
+                                        </div>
+                                        <div className="flex-[1.5] flex items-center bg-white dark:bg-[#121212] border border-stone-200 dark:border-stone-700 rounded px-2 py-2 focus-within:border-sage-500 smooth-transition">
+                                            <span className="text-[10px] text-stone-400 mr-1 shrink-0">投入</span>
+                                            <input type="number" value={contributionStage3} onChange={e=>setContributionStage3(e.target.value === '' ? '' : Number(e.target.value))} placeholder="0" className="w-full bg-transparent outline-none text-right font-medium text-sm text-stone-900 dark:text-stone-100 placeholder-stone-400/50" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-4 border-t border-stone-200 dark:border-stone-800">
+                                <div>
+                                    <label className="text-[11px] text-stone-500 tracking-widest mb-3 font-bold uppercase flex justify-between items-center">
+                                        年化報酬率 (XIRR)
+                                    </label>
+                                    <div className="flex flex-col gap-3">
+                                        <div className="bg-stone-100 dark:bg-stone-800/50 rounded-md px-3 py-2 border border-stone-200 dark:border-stone-700 text-sage-600 dark:text-sage-400 font-bold text-center">
+                                            {annualReturn} %
+                                        </div>
+                                        <input type="range" min="1" max="15" step="0.5" value={num(annualReturn)} onChange={(e) => setAnnualReturn(Number(e.target.value))} className="w-full accent-sage" />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="text-[11px] text-stone-500 tracking-widest mb-3 font-bold uppercase flex justify-between items-center">
+                                        通脹率 (Inflation)
+                                    </label>
+                                    <div className="flex flex-col gap-3">
+                                        <div className="bg-stone-100 dark:bg-stone-800/50 rounded-md px-3 py-2 border border-stone-200 dark:border-stone-700 text-clay-600 dark:text-clay-400 font-bold text-center">
+                                            {inflationRate} %
+                                        </div>
+                                        <input type="range" min="0" max="6" step="0.1" value={num(inflationRate)} onChange={(e) => setInflationRate(Number(e.target.value))} className="w-full accent-clay" />
+                                    </div>
+                                </div>
+                            </div>
+                        </Card>
+                    </div>
+
+                    <div className="lg:col-span-2 space-y-6">
+                        <Card className="p-4 md:p-6 flex flex-col h-full">
+                            <SectionTitle title="複利與通脹折算曲線 (三階段模型)" subtitle="Growth Trajectory" />
+                            <div className="w-full h-[300px] sm:h-[350px] lg:h-[450px]">
+                                <canvas ref={chartRef}></canvas>
+                            </div>
+
+                            <div className="mt-8 border-t border-stone-100 dark:border-stone-800 pt-6 space-y-6">
+                                <h3 className="text-sm font-bold text-stone-800 dark:text-stone-200 tracking-wider flex items-center gap-2">
+                                    <Icons.TrendingUp/> 實質購買力進度碑
+                                </h3>
+                                
+                                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+                                    {[1000000, 2000000, 3000000, 6000000].map((milestone) => {
+                                        const mData = chartData.data.find(d => d.實質購買力 >= milestone);
+                                        return (
+                                            <div key={milestone} className="bg-stone-50 dark:bg-stone-800/30 p-3 md:p-4 rounded-xl border border-stone-200/50 dark:border-stone-700/50 text-center flex flex-col justify-center hover:border-stone-300 dark:hover:border-stone-600 smooth-transition cursor-default">
+                                                <div className="text-[10px] md:text-[11px] text-stone-500 dark:text-stone-400 mb-1.5 font-medium tracking-widest">{milestone / 10000}萬 實質進度</div>
+                                                {mData ? (
+                                                    <>
+                                                        <div className="font-bold text-lg md:text-xl text-stone-900 dark:text-stone-100">{mData.ageStr}</div>
+                                                        <div className="text-[9px] md:text-[10px] text-stone-500 mt-1 uppercase tracking-wider">{mData.yearStr} 達成</div>
+                                                    </>
+                                                ) : (
+                                                    <div className="font-bold text-lg md:text-xl text-stone-300 dark:text-stone-700">—</div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                                
+                                <div className="p-5 md:p-8 rounded-xl border border-sage-200 dark:border-sage-800/50 bg-sage-50/50 dark:bg-sage-900/10 shadow-sm relative overflow-hidden flex flex-col sm:flex-row items-center justify-between gap-6 sm:gap-4 md:gap-6 hover:shadow-md smooth-transition">
+                                    <div className="absolute top-0 right-0 w-24 md:w-32 h-24 md:h-32 bg-sage-200/40 dark:bg-sage-800/30 rounded-bl-full -mr-12 md:-mr-16 -mt-12 md:-mt-16 pointer-events-none"></div>
+                                    <div className="absolute bottom-0 left-0 w-16 md:w-24 h-16 md:h-24 bg-sage-200/30 dark:bg-sage-800/20 rounded-tr-full -ml-8 md:-ml-12 -mb-8 md:-mb-12 pointer-events-none"></div>
+                                    
+                                    <div className="flex-1 z-10 w-full text-center sm:text-left">
+                                        <p className="text-[10px] md:text-xs text-stone-500 dark:text-stone-400 tracking-widest mb-1.5 md:mb-2 font-bold uppercase">達標 {(num(target)/10000)}萬(實質) 需時</p>
+                                        <div className="text-3xl md:text-4xl font-black text-sage-600 dark:text-sage-400 my-1 md:my-2">
+                                            {hit ? (
+                                                <div className="flex items-baseline justify-center sm:justify-start">
+                                                    {y > 0 && <span>{y}<span className="text-lg md:text-xl mx-1 text-sage-500/70 font-normal">年</span></span>}
+                                                    {m > 0 && <span>{m}<span className="text-lg md:text-xl ml-1 text-sage-500/70 font-normal">個月</span></span>}
+                                                    {y === 0 && m === 0 && <span>已達標</span>}
+                                                </div>
+                                            ) : '—'}
+                                        </div>
+                                        <p className="text-[10px] md:text-xs text-stone-500">預計達成時間: <strong className="text-stone-700 dark:text-stone-300 text-sm md:text-base ml-1">{hit ? `${hit.yearStr} (${hit.ageStr})` : '—'}</strong></p>
+                                    </div>
+
+                                    <div className="hidden sm:block w-px h-16 md:h-24 bg-sage-200/80 dark:bg-sage-800/80 z-10"></div>
+                                    <div className="sm:hidden h-px w-full bg-sage-200/80 dark:bg-sage-800/80 z-10"></div>
+
+                                    <div className="flex-1 z-10 w-full text-center sm:text-left">
+                                        <p className="text-[10px] md:text-xs text-stone-500 dark:text-stone-400 tracking-widest mb-1.5 md:mb-2 font-bold uppercase">達標後 4% 被動收入</p>
+                                        <div className="text-3xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-sage-600 dark:text-sage-400 my-1 md:my-2"><span className="text-lg sm:text-base md:text-lg lg:text-xl mr-1 opacity-60 font-normal">HKD</span>{Math.round((num(target) * 0.04) / 12).toLocaleString()} <span className="text-sm md:text-base font-normal opacity-80">/ 月</span></div>
+                                        <p className="text-[9px] md:text-[11px] text-sage-600/70 dark:text-sage-500 mt-1 md:mt-2">基於實質購買力計算，具備抗通脹能力</p>
+                                    </div>
+                                </div>
+                            </div>
+
                         </Card>
                     </div>
                 </div>
