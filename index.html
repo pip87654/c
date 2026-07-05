@@ -619,25 +619,24 @@
                             
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <CalcInput label="當前年齡" value={currentAge} onChange={(e)=>setCurrentAge(Number(e.target.value))} />
+                                
+                                {/* 將起始滾存本金與 IB 合併為單一輸入框 */}
                                 <div className="space-y-1.5 w-full">
                                     <label className="text-[11px] font-bold text-stone-500 tracking-widest uppercase flex justify-between items-center">
-                                        <span>起始滾存本金</span>
-                                        <span className="text-[10px] text-sage-500 dark:text-sage-400 tracking-normal normal-case">已連動</span>
+                                        <span>起始滾存本金 (IB)</span>
+                                        <span className="text-[10px] text-sage-500 dark:text-sage-400 tracking-normal normal-case">雙向同步首頁</span>
                                     </label>
-                                    <div className="flex items-center bg-stone-50 dark:bg-stone-800/30 border border-stone-200/80 dark:border-stone-700/80 rounded-lg px-3 py-2.5 cursor-not-allowed">
-                                        <span className="w-full bg-transparent outline-none font-semibold text-stone-500">${initialCapital.toLocaleString()}</span>
+                                    <div className="flex items-center bg-stone-50 dark:bg-stone-800/30 border border-stone-200/80 dark:border-stone-700/80 rounded-lg px-3 py-2.5 focus-within:border-sage-500 focus-within:ring-1 focus-within:ring-sage-500 smooth-transition">
+                                        <span className="text-stone-400 dark:text-stone-500 mr-2 text-sm">$</span>
+                                        <input 
+                                            type="number" 
+                                            value={ibInvestments} 
+                                            onChange={(e)=>setIbInvestments(Number(e.target.value))} 
+                                            className="w-full bg-transparent outline-none font-semibold text-sage-600 dark:text-sage-400" 
+                                        />
                                     </div>
-                                    <p className="text-[9px] text-stone-400 dark:text-stone-500 leading-tight">同步首頁「Interactive Brokers」。</p>
+                                    <p className="text-[9px] text-stone-400 dark:text-stone-500 leading-tight">直接修改此處，將連動至戰情總覽首頁。</p>
                                 </div>
-                            </div>
-
-                            {/* IB 同步輸入 */}
-                            <div className="flex justify-between items-center p-3 bg-sage-50/50 dark:bg-sage-900/10 border border-sage-200/50 dark:border-sage-800/50 rounded-lg smooth-transition group">
-                                <div className="flex flex-col">
-                                    <span className="text-sm font-medium text-stone-700 dark:text-stone-300">投資戶口 (IB)</span>
-                                    <span className="text-[10px] text-sage-600/70 dark:text-sage-500 mt-0.5">雙向同步首頁</span>
-                                </div>
-                                <InlineInput value={ibInvestments} onChange={(e)=>setIbInvestments(Number(e.target.value))} prefix="$" widthClass="w-24 md:w-28" colorClass="text-sage-600 dark:text-sage-400 focus:ring-sage-500/30 focus:border-sage-500" />
                             </div>
 
                             {/* 階段投入 (適配手機輸入框) */}
@@ -814,7 +813,8 @@
                                     <tr>
                                         <th className="py-3 md:py-4 px-4 md:px-6">薪級點</th>
                                         <th className="py-3 md:py-4 px-4 md:px-6 text-right">月薪 (HKD)</th>
-                                        <th className="py-3 md:py-4 px-4 md:px-6 pl-8 md:pl-12 hidden md:table-cell">晉升條件與預測時間</th>
+                                        {/* 移除隱藏屬性，並將手機版左邊距改為 pl-5 */}
+                                        <th className="py-3 md:py-4 px-4 md:px-6 pl-5 md:pl-12">晉升條件與預測時間</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-stone-100 dark:divide-stone-800/60">
@@ -827,7 +827,8 @@
                                                     Pt. {p.pt}
                                                 </td>
                                                 <td className="py-3 md:py-4 px-4 md:px-6 text-right font-bold tracking-wide">${p.salary}</td>
-                                                <td className={`py-3 md:py-4 px-4 md:px-6 pl-8 md:pl-12 text-xs hidden md:table-cell smooth-transition ${isFocus ? 'opacity-100' : 'opacity-70 group-hover:opacity-100'}`}>{p.note}</td>
+                                                {/* 移除隱藏屬性，並將手機版左邊距改為 pl-5 */}
+                                                <td className={`py-3 md:py-4 px-4 md:px-6 pl-5 md:pl-12 text-xs smooth-transition ${isFocus ? 'opacity-100' : 'opacity-70 group-hover:opacity-100'}`}>{p.note}</td>
                                             </tr>
                                         )
                                     })}
