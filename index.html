@@ -13,6 +13,13 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#121212">
     
+    <!-- ========================================== -->
+    <!-- 新增：網站與 iOS 主畫面圖示 (App Icon) -->
+    <!-- 請將你的圖示命名為 icon.png 並上傳至與此 HTML 相同的 GitHub 資料夾 -->
+    <link rel="apple-touch-icon" href="icon.png?v=2">
+    <link rel="icon" type="image/png" href="icon.png?v=2">
+    <!-- ========================================== -->
+    
     <!-- React & ReactDOM -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -203,7 +210,7 @@
                 return [storedValue, setValue];
             };
 
-            // 升級：將深色模式狀態寫入 LocalStorage，並動態連動原生 HTML 標籤
+            // 深色模式狀態與底層連動
             const [isDarkMode, setIsDarkMode] = useLocalStorage('fire_theme_dark', true); 
 
             useEffect(() => {
@@ -213,7 +220,7 @@
                     htmlRoot.style.backgroundColor = '#121212';
                 } else {
                     htmlRoot.classList.remove('dark');
-                    htmlRoot.style.backgroundColor = '#faf9f8'; // 對應 bg-stone-50
+                    htmlRoot.style.backgroundColor = '#faf9f8';
                 }
             }, [isDarkMode]);
 
@@ -547,7 +554,7 @@
                         return;
                     }
 
-                    // 修正：使用更穩定且兼容 Tesseract v5 的 recognize 捷徑方法，避免手動 createWorker 卡死
+                    // 使用更穩定且兼容 Tesseract v5 的 recognize 捷徑方法，避免手動 createWorker 卡死
                     const { data: { text } } = await window.Tesseract.recognize(
                         file,
                         'eng+chi_tra',
@@ -568,7 +575,6 @@
 
                     // 解析「總計現金」 (準備投入新資金)
                     let parsedNewMoney = rawNewMoney;
-                    // 優化正則表達式，增加換行與空格的容錯率
                     const cashMatch = text.match(/(?:總計現金|總\s*計\s*現\s*金|現金餘額|總計|Total\s*Cash)[^\d]*?([\d,]+\.\d{2})/i);
                     if (cashMatch) {
                         const cashVal = parseFloat(cashMatch[1].replace(/,/g, ''));
@@ -646,7 +652,6 @@
                             onChange={handleFileUpload} 
                             className="hidden" 
                         />
-                        {/* 這裡修復為要求變暗的按鈕：深色背景 dark:bg-stone-800 */}
                         <button 
                             onClick={() => fileInputRef.current && fileInputRef.current.click()}
                             disabled={isOcrProcessing}
@@ -806,7 +811,7 @@
             const sortedRecords = [...records].sort((a, b) => {
                 if (!a.date) return 1;
                 if (!b.date) return -1;
-                // 改為由最新到最舊排序 (Newest to Oldest)
+                // 由最新到最舊排序
                 return new Date(b.date) - new Date(a.date);
             });
 
@@ -1475,7 +1480,6 @@
                 <div className="animate-fade-in-up space-y-6 md:space-y-8">
                     <SectionTitle title="薪酬階梯" subtitle="Point System (Pt 4-17)" className="mb-0 md:mb-0" />
                     
-                    {/* 新增：上方目前人工與預測面板 */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
                         <Card className="flex flex-col justify-center p-4 md:p-6 bg-stone-50/50 dark:bg-stone-800/30 border-t-4 md:border-t-0 md:border-l-4 border-sage-500">
                             <p className="text-[10px] md:text-xs text-stone-500 tracking-widest mb-1 font-medium">目前基本月薪 (Pt. 7)</p>
