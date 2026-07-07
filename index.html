@@ -11,7 +11,6 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#121212">
     
-    <!-- 網站與 iOS 主畫面圖示 (App Icon) -->
     <link rel="apple-touch-icon" href="icon.png?v=3">
     <link rel="icon" type="image/png" href="icon.png?v=3">
     
@@ -207,7 +206,21 @@
             }, [isDarkMode]);
 
             const [target, setTarget] = useLocalStorage('fire_target_v3', 6000000); 
-            const [currentAge, setCurrentAge] = useLocalStorage('fire_age_v3', 26);
+            
+            // 年齡改為由出生日期動態計算
+            const [birthDate, setBirthDate] = useLocalStorage('fire_birth_date_v1', '1999-07-01');
+            const currentAge = useMemo(() => {
+                if (!birthDate) return 26; // 防呆預設值
+                const today = new Date();
+                const dob = new Date(birthDate);
+                let age = today.getFullYear() - dob.getFullYear();
+                const m = today.getMonth() - dob.getMonth();
+                if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
+                    age--;
+                }
+                return age;
+            }, [birthDate]);
+
             const [spareCash, setSpareCash] = useLocalStorage('fire_spare_cash_v3', 50000);
             
             const [xirrRecords, setXirrRecords] = useLocalStorage('fire_xirr_records_v4', [
@@ -250,14 +263,15 @@
                 { id: '37', date: '2026-07-02', amount: 324533 }
             ]);
 
-            const [rebalanceTickers, setRebalanceTickers] = useLocalStorage('fire_rebalance_tickers_v1', [
+            const initialRebalanceTickers = [
                 { symbol: 'AVDV', targetPct: 13.5, currentVal: 4720 },
                 { symbol: 'AVUV', targetPct: 16.5, currentVal: 6295 },
                 { symbol: 'IMOM', targetPct: 18.0, currentVal: 6374 },
                 { symbol: 'IVAL', targetPct: 13.5, currentVal: 4717 },
                 { symbol: 'QMOM', targetPct: 22.0, currentVal: 7832 },
                 { symbol: 'QVAL', targetPct: 16.5, currentVal: 6011 }
-            ]);
+            ];
+            const [rebalanceTickers, setRebalanceTickers] = useLocalStorage('fire_rebalance_tickers_v1', initialRebalanceTickers);
             const [rawNewMoney, setRawNewMoney] = useLocalStorage('fire_rebalance_money_v1', 5644);
 
             const latestMarketValue = useMemo(() => {
@@ -450,7 +464,7 @@
                                 {activeTab === 'salary' && <SalaryTab />}
                                 {activeTab === 'loan' && <LoanTab schedule={schedule} outstandingLoan={outstandingLoan} />}
                                 {activeTab === 'calculator' && <CalculatorTab 
-                                    isDark={isDarkMode} currentAge={currentAge} setCurrentAge={setCurrentAge}
+                                    isDark={isDarkMode} birthDate={birthDate} setBirthDate={setBirthDate} currentAge={currentAge}
                                     autoStage1Months={autoStage1Months} autoStage2Months={autoStage2Months}
                                     contributionStage2={contributionStage2} setContributionStage2={setContributionStage2}
                                     contributionStage3={contributionStage3} setContributionStage3={setContributionStage3}
@@ -1264,7 +1278,7 @@
         }
 
         function CalculatorTab({ 
-            isDark, currentAge, setCurrentAge,
+            isDark, birthDate, setBirthDate, currentAge,
             autoStage1Months, autoStage2Months,
             contributionStage2, setContributionStage2,
             contributionStage3, setContributionStage3,
@@ -1448,15 +1462,27 @@
                             </div>
                             
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
-                                <div className="h-[72px]">
-                                    <CalcInput 
-                                        label="當前年齡" 
-                                        value={currentAge} 
-                                        onChange={(e)=>setCurrentAge(e.target.value === '' ? '' : Number(e.target.value))}
-                                        showStepper={true}
-                                        onMinus={() => setCurrentAge(prev => num(prev) > 0 ? num(prev) - 1 : 0)}
-                                        onPlus={() => setCurrentAge(prev => num(prev) + 1)}
-                                    />
+                                
+                                {/* 將年齡改為出生日期輸入 */}
+                                <div className="space-y-1.5 w-full h-[72px] flex flex-col justify-end">
+                                    <label className="text-[11px] font-bold text-stone-500 tracking-widest uppercase flex justify-between items-end pb-1">
+                                        <span>出生日期</span>
+                                        <span className="text-[10px] text-sage-600 dark:text-sage-400 tracking-normal normal-case font-bold bg-sage-500/10 px-1.5 py-0.5 rounded">
+                                            當前推算為 {currentAge} 歲
+                                        </span>
+                                    </label>
+                                    <div className="relative flex items-center bg-stone-50 dark:bg-stone-800/30 border border-stone-200/80 dark:border-stone-700/80 rounded-lg px-3 py-2.5 focus-within:border-sage-500 focus-within:ring-1 focus-within:ring-sage-500 smooth-transition h-10 md:h-[42px] cursor-pointer group">
+                                        <input 
+                                            type="date" 
+                                            value={birthDate} 
+                                            onChange={(e) => setBirthDate(e.target.value)} 
+                                            className="absolute inset-0 w-full h-full opacity-0 z-10 cursor-pointer"
+                                        />
+                                        <div className="w-full font-semibold text-stone-900 dark:text-stone-100 placeholder-stone-400/50 flex justify-between items-center text-sm md:text-base">
+                                            <span className="font-mono">{birthDate || 'YYYY-MM-DD'}</span>
+                                            <div className="opacity-50 group-hover:opacity-100 smooth-transition"><Icons.Calendar /></div>
+                                        </div>
+                                    </div>
                                 </div>
                                 
                                 <div className="space-y-1.5 w-full h-[72px] flex flex-col justify-end">
@@ -1563,19 +1589,20 @@
                                     <Icons.TrendingUp/> 實質購買力進度碑
                                 </h3>
                                 
-                                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-                                    {[1000000, 2000000, 3000000, 6000000].map((milestone) => {
+                                {/* 調整為 3 欄位均分排版 (grid-cols-3)，並只保留 100萬、200萬、300萬 */}
+                                <div className="grid grid-cols-3 gap-2 md:gap-4">
+                                    {[1000000, 2000000, 3000000].map((milestone) => {
                                         const mData = chartData.data.find(d => d.實質購買力 >= milestone);
                                         return (
-                                            <div key={milestone} className="bg-stone-50 dark:bg-stone-800/30 p-3 md:p-4 rounded-xl border border-stone-200/50 dark:border-stone-700/50 text-center flex flex-col justify-center hover:border-stone-300 dark:hover:border-stone-600 smooth-transition cursor-default">
-                                                <div className="text-[10px] md:text-[11px] text-stone-500 dark:text-stone-400 mb-1.5 font-medium tracking-widest">{milestone / 10000}萬 實質進度</div>
+                                            <div key={milestone} className="bg-stone-50 dark:bg-stone-800/30 p-2 md:p-4 rounded-xl border border-stone-200/50 dark:border-stone-700/50 text-center flex flex-col justify-center hover:border-stone-300 dark:hover:border-stone-600 smooth-transition cursor-default">
+                                                <div className="text-[9px] md:text-[11px] text-stone-500 dark:text-stone-400 mb-1.5 font-medium tracking-widest">{milestone / 10000}萬 實質進度</div>
                                                 {mData ? (
                                                     <>
-                                                        <div className="font-bold text-lg md:text-xl text-stone-900 dark:text-stone-100">{mData.ageStr}</div>
-                                                        <div className="text-[9px] md:text-[10px] text-stone-500 mt-1 uppercase tracking-wider">{mData.yearStr} 達成</div>
+                                                        <div className="font-bold text-base md:text-xl text-stone-900 dark:text-stone-100">{mData.ageStr}</div>
+                                                        <div className="text-[8px] md:text-[10px] text-stone-500 mt-1 uppercase tracking-wider">{mData.yearStr} 達成</div>
                                                     </>
                                                 ) : (
-                                                    <div className="font-bold text-lg md:text-xl text-stone-300 dark:text-stone-700">—</div>
+                                                    <div className="font-bold text-base md:text-xl text-stone-300 dark:text-stone-700">—</div>
                                                 )}
                                             </div>
                                         );
