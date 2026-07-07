@@ -39,6 +39,7 @@
                     },
                     animation: {
                         'fade-in-up': 'fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
                     },
                     keyframes: {
                         fadeInUp: {
@@ -50,10 +51,12 @@
             }
         }
     </script>
-    
     <style>
         .pt-safe { padding-top: max(env(safe-area-inset-top), 24px) !important; }
         .safe-area-pb { padding-bottom: max(env(safe-area-inset-bottom), 20px) !important; }
+        
+        /* 透過縮小基準字體，利用 Tailwind 的 rem 單位達成全站完美等比例縮放 80%，並解決 Chart.js 鼠標偏移的 bug */
+        html { font-size: 80%; }
         
         body { font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; letter-spacing: -0.01em; -webkit-tap-highlight-color: transparent; }
         .hide-scrollbar::-webkit-scrollbar { display: none; }
@@ -173,7 +176,7 @@
         };
 
         function App() {
-            const [activeTab, setActiveTab] = useState('dashboard');
+            const [activeTab, setActiveTab] = useState('calculator'); // 預設跳到計算機方便檢視
 
             const useLocalStorage = (key, initialValue) => {
                 const [storedValue, setStoredValue] = useState(() => {
@@ -205,13 +208,30 @@
                 }
             }, [isDarkMode]);
 
-            const [target, setTarget] = useLocalStorage('fire_target_v3', 6000000); 
+            // === 動態提領與現金帳篷設定 ===
+            const [targetMonthlyIncome, setTargetMonthlyIncome] = useLocalStorage('fire_target_income_v5', 20000); 
+            const [withdrawalRate, setWithdrawalRate] = useLocalStorage('fire_withdrawal_rate_v5', 5.5);
             
-            // 年齡改為由出生日期動態計算 (精確到月)
-            const [birthDate, setBirthDate] = useLocalStorage('fire_birth_date_v1', '1999-07-01');
+            // 自動計算基礎本金、現金帳篷與終極目標
+            const { baseTarget, cashTent, target } = useMemo(() => {
+                const rate = num(withdrawalRate) || 4.0;
+                const monthly = num(targetMonthlyIncome);
+                
+                // 基礎本金 = 年開支 / 提領率
+                const base = (monthly * 12) / (rate / 100);
+                // 現金帳篷 = -10%警戒線(90%生活費) x 24個月
+                const tent = (monthly * 0.9) * 24; 
+                // 終極目標 = 兩者相加
+                const total = base + tent;
+                
+                return { baseTarget: base, cashTent: tent, target: total };
+            }, [targetMonthlyIncome, withdrawalRate]);
+
+            const [birthDate, setBirthDate] = useLocalStorage('fire_birth_date_v1', '1999-07-25');
+            
             const currentAgeObj = useMemo(() => {
                 if (!birthDate) return { years: 26, months: 0 };
-                const today = new Date();
+                const today = new Date(); 
                 const dob = new Date(birthDate);
                 let years = today.getFullYear() - dob.getFullYear();
                 let months = today.getMonth() - dob.getMonth();
@@ -351,9 +371,9 @@
             const availableSavings = totalIncome - num(expenses) - num(mpf);
 
             const [contributionStage2, setContributionStage2] = useLocalStorage('fire_stage2_cont_v3', 15000); 
-            const [contributionStage3, setContributionStage3] = useLocalStorage('fire_stage3_cont_v3', 15000); 
+            const [contributionStage3, setContributionStage3] = useLocalStorage('fire_stage3_cont_v3', 25000); 
 
-            const [annualReturn, setAnnualReturn] = useLocalStorage('fire_return_v3', 8);
+            const [annualReturn, setAnnualReturn] = useLocalStorage('fire_return_v3', 10);
             const [inflationRate, setInflationRate] = useLocalStorage('fire_inflation_v3', 2.5);
 
             const chartData = useMemo(() => {
@@ -377,7 +397,7 @@
                     monthsElapsed: 0,
                     yearStr: `${baseYear}年${baseMonth}月`,
                     ageStr: `${startAgeYears}歲${startAgeMonths > 0 ? startAgeMonths + '個月' : ''}`,
-                    age: startAgeYears + startAgeMonths / 12,
+                    ageFloat: startAgeYears + startAgeMonths / 12,
                     總資產: balance, 
                     實質購買力: realBalance, 
                     投入本金: balance 
@@ -406,12 +426,13 @@
                     let totalM = startTotalMonths + months;
                     let ageY = Math.floor(totalM / 12);
                     let ageM = totalM % 12;
+                    let ageFloat = totalM / 12;
 
                     data.push({
                         monthsElapsed: months,
                         yearStr: `${currentY}年${currentM}月`,
                         ageStr: `${ageY}歲${ageM > 0 ? ageM + '個月' : ''}`,
-                        age: ageY + ageM / 12,
+                        ageFloat: ageFloat,
                         總資產: Math.round(balance), 
                         實質購買力: Math.round(realBalance), 
                         投入本金: Math.round(totalPrincipal)
@@ -481,7 +502,9 @@
                                     annualReturn={annualReturn} setAnnualReturn={setAnnualReturn}
                                     inflationRate={inflationRate} setInflationRate={setInflationRate}
                                     availableSavings={availableSavings} setExpenses={setExpenses} totalIncome={totalIncome} mpf={mpf}
-                                    chartData={chartData} target={target} setTarget={setTarget}
+                                    chartData={chartData} target={target} baseTarget={baseTarget} cashTent={cashTent}
+                                    targetMonthlyIncome={targetMonthlyIncome} setTargetMonthlyIncome={setTargetMonthlyIncome}
+                                    withdrawalRate={withdrawalRate} setWithdrawalRate={setWithdrawalRate}
                                     latestMarketValue={latestMarketValue}
                                 />}
                             </div>
@@ -524,32 +547,6 @@
                 />
                 <div className="absolute -right-6 opacity-0 md:group-hover:opacity-100 transition-opacity duration-300 pointer-events-none hidden md:block">
                     <Icons.Edit />
-                </div>
-            </div>
-        );
-
-        const CalcInput = ({ label, value, onChange, prefix, postfix, hint, showStepper, onMinus, onPlus }) => (
-            <div className="space-y-1.5 w-full h-full flex flex-col justify-end">
-                <label className="text-[11px] font-bold text-stone-500 tracking-widest uppercase flex flex-col md:flex-row md:justify-between md:items-center gap-1 md:gap-0 pb-1">
-                    <span>{label}</span>
-                    {hint && <span className="text-[10px] text-sage-500 dark:text-sage-400 tracking-normal normal-case">{hint}</span>}
-                </label>
-                <div className={`flex items-center bg-stone-50 dark:bg-stone-800/30 border border-stone-200/80 dark:border-stone-700/80 rounded-lg focus-within:border-sage-500 focus-within:ring-1 focus-within:ring-sage-500 smooth-transition ${showStepper ? 'p-1.5' : 'px-3 py-2.5'}`}>
-                    {showStepper && (
-                        <button onClick={onMinus} className="w-10 h-8 md:h-10 flex items-center justify-center text-stone-400 hover:text-stone-800 dark:hover:text-stone-200 hover:bg-stone-200/80 dark:hover:bg-stone-700/80 rounded-md smooth-transition active:scale-95 shrink-0">
-                            <Icons.Minus />
-                        </button>
-                    )}
-                    {prefix && !showStepper && <span className="text-stone-400 dark:text-stone-500 mr-2 text-sm">{prefix}</span>}
-                    
-                    <input type="number" value={value} onChange={onChange} placeholder="0" className={`w-full bg-transparent outline-none font-semibold text-stone-900 dark:text-stone-100 placeholder-stone-400/50 ${showStepper ? 'text-center text-lg' : ''}`} />
-                    
-                    {postfix && !showStepper && <span className="text-stone-400 dark:text-stone-500 ml-2 text-sm">{postfix}</span>}
-                    {showStepper && (
-                        <button onClick={onPlus} className="w-10 h-8 md:h-10 flex items-center justify-center text-stone-400 hover:text-stone-800 dark:hover:text-stone-200 hover:bg-stone-200/80 dark:hover:bg-stone-700/80 rounded-md smooth-transition active:scale-95 shrink-0">
-                            <Icons.Plus />
-                        </button>
-                    )}
                 </div>
             </div>
         );
@@ -677,16 +674,16 @@
                     </div>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-                        <Card className="p-4 md:p-6 bg-amber-50/50 dark:bg-amber-900/20 border-amber-200/50 dark:border-amber-800/30">
-                            <label className="text-[10px] md:text-xs text-amber-800 dark:text-amber-500 font-bold uppercase tracking-widest mb-2 block">1. 準備投入新資金 (USD)</label>
-                            <div className="flex items-center bg-white dark:bg-[#121212] border border-amber-200 dark:border-amber-700/50 rounded-xl px-4 py-3 focus-within:border-amber-500 focus-within:ring-1 focus-within:ring-amber-500 smooth-transition shadow-sm">
+                        <Card className="p-4 md:p-6 bg-clay-50/40 dark:bg-clay-900/10 border-clay-200/50 dark:border-clay-800/30">
+                            <label className="text-[10px] md:text-xs text-clay-800 dark:text-clay-400 font-bold uppercase tracking-widest mb-2 block">1. 準備投入新資金 (USD)</label>
+                            <div className="flex items-center bg-white dark:bg-[#121212] border border-clay-200 dark:border-clay-700/50 rounded-xl px-4 py-3 focus-within:border-clay-500 focus-within:ring-1 focus-within:ring-clay-500 smooth-transition shadow-sm">
                                 <span className="text-stone-400 mr-2 font-medium">$</span>
                                 <input 
                                     type="number" 
                                     value={rawNewMoney} 
                                     onChange={(e) => setRawNewMoney(e.target.value === '' ? '' : Number(e.target.value))} 
                                     placeholder="0" 
-                                    className="w-full bg-transparent outline-none text-2xl font-black text-amber-900 dark:text-amber-400" 
+                                    className="w-full bg-transparent outline-none text-2xl font-black text-clay-900 dark:text-clay-400" 
                                 />
                             </div>
                         </Card>
@@ -703,7 +700,7 @@
                     <Card className="p-0 overflow-hidden">
                         <div className="p-4 md:p-6 border-b border-stone-200 dark:border-stone-800 bg-stone-50/50 dark:bg-stone-900/30">
                             <h3 className="font-semibold text-stone-800 dark:text-stone-200 text-sm md:text-base">再平衡配置矩陣</h3>
-                            <p className="text-[10px] md:text-xs text-stone-500 mt-1">在黃色欄位輸入最新市值，系統將自動於藍色欄位配發應買入金額。</p>
+                            <p className="text-[10px] md:text-xs text-stone-500 mt-1">在對應的大地色欄位輸入最新市值，系統將自動於鼠尾草綠欄位配發應買入金額。</p>
                         </div>
                         <div className="overflow-x-auto custom-scrollbar">
                             <table className="w-full text-left text-sm whitespace-nowrap min-w-[600px]">
@@ -711,10 +708,10 @@
                                     <tr>
                                         <th className="py-3 px-4">代號</th>
                                         <th className="py-3 px-4 text-right">目標比例</th>
-                                        <th className="py-3 px-4 text-right bg-amber-100/60 dark:bg-amber-900/30 text-amber-900 dark:text-amber-200">2. 目前市值(USD)</th>
+                                        <th className="py-3 px-4 text-right bg-clay-100/50 dark:bg-clay-900/20 text-clay-800 dark:text-clay-300">2. 目前市值(USD)</th>
                                         <th className="py-3 px-4 text-right">目標總值</th>
                                         <th className="py-3 px-4 text-right">缺口佔比</th>
-                                        <th className="py-3 px-4 text-right bg-sky-100/60 dark:bg-sky-900/30 text-sky-900 dark:text-sky-200">本月應買入(USD)</th>
+                                        <th className="py-3 px-4 text-right bg-sage-100/50 dark:bg-sage-900/20 text-sage-800 dark:text-sage-300">本月應買入(USD)</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-stone-100 dark:divide-stone-800/60 text-xs md:text-sm font-mono">
@@ -723,13 +720,13 @@
                                             <td className="py-2.5 px-4 font-bold font-sans text-stone-900 dark:text-stone-100">{row.symbol}</td>
                                             <td className="py-2.5 px-4 text-right text-stone-600 dark:text-stone-400">{row.targetPct.toFixed(2)}%</td>
                                             
-                                            <td className="py-2 px-2 bg-amber-50/40 dark:bg-amber-900/20">
-                                                <div className="relative flex items-center bg-white dark:bg-[#121212] border border-amber-200 dark:border-amber-700/50 rounded flex-1 focus-within:border-amber-500 smooth-transition max-w-[120px] ml-auto">
+                                            <td className="py-2 px-2 bg-clay-50/30 dark:bg-clay-900/10">
+                                                <div className="relative flex items-center bg-white dark:bg-[#121212] border border-clay-200 dark:border-clay-700/50 rounded flex-1 focus-within:border-clay-500 smooth-transition max-w-[120px] ml-auto">
                                                     <input 
                                                         type="number" 
                                                         value={row.currentVal} 
                                                         onChange={(e) => handleCurrentValChange(idx, e.target.value)}
-                                                        className="w-full bg-transparent outline-none py-1.5 px-2 text-right font-bold text-amber-900 dark:text-amber-400"
+                                                        className="w-full bg-transparent outline-none py-1.5 px-2 text-right font-bold text-clay-900 dark:text-clay-400"
                                                     />
                                                 </div>
                                             </td>
@@ -737,7 +734,7 @@
                                             <td className="py-2.5 px-4 text-right text-stone-600 dark:text-stone-400">{row.targetValue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
                                             <td className="py-2.5 px-4 text-right text-stone-600 dark:text-stone-400">{(row.gapPct).toLocaleString(undefined, {minimumFractionDigits: 6, maximumFractionDigits: 6})}</td>
                                             
-                                            <td className="py-2.5 px-4 text-right bg-sky-50/50 dark:bg-sky-900/20 font-bold text-sky-700 dark:text-sky-400 text-sm md:text-base">
+                                            <td className="py-2.5 px-4 text-right bg-sage-50/40 dark:bg-sage-900/10 font-bold text-sage-700 dark:text-sage-400 text-sm md:text-base">
                                                 {row.buyAmount.toLocaleString()}
                                             </td>
                                         </tr>
@@ -745,10 +742,10 @@
                                     <tr className="bg-stone-50 dark:bg-stone-800/50 font-bold border-t border-stone-200 dark:border-stone-700">
                                         <td className="py-3 px-4 font-sans">總計</td>
                                         <td className="py-3 px-4 text-right">100.00%</td>
-                                        <td className="py-3 px-4 text-right text-amber-700 dark:text-amber-500 pr-4 bg-amber-50/40 dark:bg-amber-900/20">{totalCurrent.toLocaleString()}</td>
+                                        <td className="py-3 px-4 text-right text-clay-700 dark:text-clay-400 pr-4 bg-clay-50/30 dark:bg-clay-900/10">{totalCurrent.toLocaleString()}</td>
                                         <td className="py-3 px-4 text-right">{targetTotal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
                                         <td className="py-3 px-4 text-right">1.000000</td>
-                                        <td className="py-3 px-4 text-right text-sky-700 dark:text-sky-400 text-sm md:text-base pr-4 bg-sky-50/50 dark:bg-sky-900/20">
+                                        <td className="py-3 px-4 text-right text-sage-700 dark:text-sage-400 text-sm md:text-base pr-4 bg-sage-50/40 dark:bg-sage-900/10">
                                             {finalRows.reduce((sum, r) => sum + r.buyAmount, 0).toLocaleString()}
                                         </td>
                                     </tr>
@@ -996,9 +993,10 @@
             return (
                 <div className="space-y-6 md:space-y-8">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <Card className="flex flex-col justify-center">
+                        <Card className="flex flex-col justify-center relative overflow-hidden group">
+                            <div className="absolute inset-0 bg-gradient-to-br from-transparent to-stone-100/50 dark:to-stone-800/30 opacity-0 group-hover:opacity-100 smooth-transition pointer-events-none"></div>
                             <p className="text-xs text-stone-500 tracking-widest mb-1 flex items-center gap-1"><Icons.TrendingUp/> 距離實質達標</p>
-                            <div className="text-3xl md:text-4xl font-bold text-stone-900 dark:text-stone-100 mt-2">
+                            <div className="text-3xl md:text-4xl font-bold text-stone-900 dark:text-stone-100 mt-2 z-10">
                                 {hit ? (
                                     <div className="flex items-baseline">
                                         {y > 0 && <span>{y}<span className="text-base md:text-lg mx-1 text-stone-400 font-normal">年</span></span>}
@@ -1007,6 +1005,7 @@
                                     </div>
                                 ) : '—'}
                             </div>
+                            {hit && <p className="text-[10px] text-stone-500 mt-1.5 z-10">預計達成: <strong className="text-stone-700 dark:text-stone-300">{hit.yearStr} ({hit.ageStr})</strong></p>}
                         </Card>
                         <Card className="flex flex-col justify-center border-b-4 border-b-sage-500 dark:border-b-sage-400">
                             <p className="text-xs text-stone-500 tracking-widest mb-1 flex items-center gap-1"><Icons.Dashboard/> 流動淨資產</p>
@@ -1125,6 +1124,488 @@
                                     </div>
                                 </div>
                             </div>
+                        </Card>
+                    </div>
+                </div>
+            );
+        }
+
+        function CalculatorTab({ 
+            isDark, birthDate, setBirthDate, currentAgeObj,
+            autoStage1Months, autoStage2Months,
+            contributionStage2, setContributionStage2,
+            contributionStage3, setContributionStage3,
+            annualReturn, setAnnualReturn, inflationRate, setInflationRate,
+            availableSavings, setExpenses, totalIncome, mpf, chartData, target, baseTarget, cashTent,
+            targetMonthlyIncome, setTargetMonthlyIncome, withdrawalRate, setWithdrawalRate,
+            latestMarketValue 
+        }) {
+            const chartRef = useRef(null);
+            const chartInstance = useRef(null);
+
+            const [localStage1, setLocalStage1] = useState(availableSavings);
+
+            useEffect(() => {
+                if (num(localStage1) !== availableSavings) {
+                    setLocalStage1(availableSavings);
+                }
+            }, [availableSavings]);
+
+            const handleStage1Change = (val) => {
+                setLocalStage1(val);
+                if (val === '') {
+                    setExpenses(totalIncome - num(mpf));
+                } else {
+                    setExpenses(totalIncome - num(mpf) - Number(val));
+                }
+            };
+
+            const safeTarget = num(target);
+
+            // 更新 Chart.js 設定以美化目標點標記
+            useEffect(() => {
+                if (!chartRef.current) return;
+                if (chartInstance.current) chartInstance.current.destroy();
+
+                const ctx = chartRef.current.getContext('2d');
+                const displayData = chartData.data;
+                const labels = displayData.map(d => d.monthsElapsed);
+
+                const nominalColor = isDark ? '#799477' : '#5c755a'; 
+                const realColor = isDark ? '#8ba2b3' : '#6b8496'; 
+                const principalColor = isDark ? '#5c5952' : '#a8a49c'; 
+                
+                // 更換為具質感的琥珀金 (Amber)，強調目標的達成
+                const hitColor = isDark ? '#fbbf24' : '#f59e0b'; 
+                const targetLineColor = isDark ? 'rgba(251, 191, 36, 0.4)' : 'rgba(245, 158, 11, 0.4)';
+                const gridColor = isDark ? '#2e2c29' : '#e8e6e1';
+                
+                const hitPointData = displayData.map(d => {
+                    return (chartData.targetHit && d.monthsElapsed === chartData.targetHit.monthsElapsed) ? safeTarget : null;
+                });
+
+                chartInstance.current = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: '達成點',
+                                data: hitPointData,
+                                borderColor: hitColor, 
+                                backgroundColor: isDark ? '#181818' : '#ffffff', // 鏤空效果，配合卡片背景
+                                pointStyle: 'circle', // 簡約圓形
+                                pointRadius: 6,       // 適中大小
+                                pointHoverRadius: 8,
+                                borderWidth: 3,       // 加粗邊框形成環狀
+                                showLine: false,
+                                z: 10
+                            },
+                            {
+                                label: '名目總資產',
+                                data: displayData.map(d => d.總資產),
+                                borderColor: nominalColor,
+                                backgroundColor: isDark ? 'rgba(121, 148, 119, 0.1)' : 'rgba(92, 117, 90, 0.08)',
+                                fill: true,
+                                tension: 0.3,
+                                borderWidth: 3,
+                                pointRadius: 0,
+                                pointHoverRadius: 6,
+                                pointHoverBackgroundColor: nominalColor
+                            },
+                            {
+                                label: '實質購買力',
+                                data: displayData.map(d => d.實質購買力),
+                                borderColor: realColor,
+                                borderDash: [5, 5],
+                                fill: false,
+                                tension: 0.3,
+                                borderWidth: 2,
+                                pointRadius: 0,
+                                pointHoverRadius: 6
+                            },
+                            {
+                                label: '累計投入本金',
+                                data: displayData.map(d => d.投入本金),
+                                borderColor: principalColor,
+                                fill: false,
+                                tension: 0.3,
+                                borderWidth: 2,
+                                pointRadius: 0
+                            },
+                            {
+                                label: `目標: ${(safeTarget/10000).toFixed(1)}萬`,
+                                data: displayData.map(() => safeTarget),
+                                borderColor: targetLineColor,
+                                borderDash: [4, 4],
+                                fill: false,
+                                tension: 0,
+                                borderWidth: 1.5,
+                                pointRadius: 0
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        layout: { padding: { top: 0, bottom: 0 } },
+                        interaction: { mode: 'index', intersect: false },
+                        plugins: {
+                            legend: { 
+                                display: true, 
+                                position: 'top', 
+                                align: 'center',
+                                labels: { 
+                                    color: isDark ? '#a8a49c' : '#5c5952',
+                                    usePointStyle: true,
+                                    boxWidth: 8,
+                                    font: { family: 'Inter', size: 10 },
+                                    filter: (item) => item.text !== '達成點'
+                                } 
+                            },
+                            tooltip: {
+                                backgroundColor: isDark ? 'rgba(28, 27, 26, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+                                titleColor: isDark ? '#e8e6e1' : '#1c1b1a',
+                                bodyColor: isDark ? '#d6d3cd' : '#5c5952',
+                                borderColor: isDark ? '#45423d' : '#e8e6e1',
+                                borderWidth: 1,
+                                cornerRadius: 8,
+                                padding: 12,
+                                titleFont: { family: 'Inter', size: 12, weight: 'bold' },
+                                bodyFont: { family: 'Inter', size: 11, weight: '500' },
+                                boxPadding: 6,
+                                filter: (item) => item.dataset.label !== '達成點',
+                                callbacks: {
+                                    title: (context) => {
+                                        const d = displayData[context[0].dataIndex];
+                                        return `預測時間: ${d.yearStr} (${d.ageStr})`;
+                                    },
+                                    label: function(context) {
+                                        let label = context.dataset.label || '';
+                                        if (context.parsed.y !== null) {
+                                            label += `  $${(context.parsed.y / 10000).toFixed(1)} 萬`;
+                                        }
+                                        return label;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: { 
+                                grid: { display: false }, 
+                                ticks: { 
+                                    color: principalColor, 
+                                    font: { family: 'Inter', size: 10 }, 
+                                    maxRotation: 0,
+                                    callback: function(val, index) {
+                                        const d = displayData[index];
+                                        if (d && d.monthsElapsed % 12 === 0) {
+                                            return Math.floor(d.ageFloat) + '歲';
+                                        }
+                                        return null;
+                                    }
+                                } 
+                            },
+                            y: { 
+                                border: { display: false },
+                                grid: { color: gridColor, drawBorder: false }, 
+                                ticks: { 
+                                    color: principalColor, font: { family: 'Inter', size: 10 },
+                                    callback: function(value) { return value / 10000 + ' 萬'; }
+                                } 
+                            }
+                        }
+                    }
+                });
+                return () => { if (chartInstance.current) chartInstance.current.destroy(); };
+            }, [chartData, isDark, target]);
+
+            const hit = chartData.targetHit;
+            const y = hit ? Math.floor(hit.monthsElapsed / 12) : 0;
+            const m = hit ? hit.monthsElapsed % 12 : 0;
+
+            return (
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-[fadeIn_0.5s_ease-out] items-start">
+                    
+                    {/* 左欄：中控台 */}
+                    <div className="lg:col-span-1 space-y-6">
+                        <Card className="p-5 md:p-6 space-y-6">
+                            <h3 className="text-lg font-bold text-stone-800 dark:text-stone-200 flex items-center gap-2">
+                                <Icons.Dashboard/> 三階段 FIRE 引擎
+                            </h3>
+                            
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
+                                {/* 目標每月被動收入 */}
+                                <div className="w-full flex flex-col space-y-1.5">
+                                    <label className="text-[11px] font-bold text-stone-500 tracking-widest uppercase flex justify-between items-end pb-1">
+                                        <span>目標每月被動收入 (HKD)</span>
+                                    </label>
+                                    <div className="flex items-center bg-stone-50 dark:bg-stone-800/30 border border-stone-200/80 dark:border-stone-700/80 rounded-lg p-1 h-11 md:h-12 focus-within:border-sage-500 focus-within:ring-1 focus-within:ring-sage-500 smooth-transition">
+                                        <button onClick={() => setTargetMonthlyIncome(prev => Math.max(0, num(prev) - 1000))} className="w-10 h-full flex items-center justify-center text-stone-400 hover:text-stone-800 dark:hover:text-stone-200 hover:bg-stone-200/80 dark:hover:bg-stone-700/80 rounded-md smooth-transition active:scale-95 shrink-0">
+                                            <Icons.Minus />
+                                        </button>
+                                        <input type="number" value={targetMonthlyIncome} onChange={(e)=>setTargetMonthlyIncome(e.target.value === '' ? '' : Number(e.target.value))} className="w-full bg-transparent outline-none font-semibold text-stone-900 dark:text-stone-100 placeholder-stone-400/50 text-center text-lg" />
+                                        <button onClick={() => setTargetMonthlyIncome(prev => num(prev) + 1000)} className="w-10 h-full flex items-center justify-center text-stone-400 hover:text-stone-800 dark:hover:text-stone-200 hover:bg-stone-200/80 dark:hover:bg-stone-700/80 rounded-md smooth-transition active:scale-95 shrink-0">
+                                            <Icons.Plus />
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                {/* 動態提領率 */}
+                                <div className="w-full flex flex-col space-y-1.5">
+                                    <label className="text-[11px] font-bold text-stone-500 tracking-widest uppercase flex justify-between items-end pb-1">
+                                        <span>動態提領率 (SWR)</span>
+                                    </label>
+                                    <div className="flex items-center gap-3 bg-stone-50 dark:bg-stone-800/30 border border-stone-200/80 dark:border-stone-700/80 rounded-lg px-3 py-1 h-11 md:h-12 focus-within:border-sage-500 focus-within:ring-1 focus-within:ring-sage-500 smooth-transition">
+                                        <span className="text-sage-600 dark:text-sage-400 font-bold w-12 text-center text-sm md:text-base">{withdrawalRate.toFixed(1)}%</span>
+                                        <input type="range" min="2.0" max="8.0" step="0.1" value={num(withdrawalRate)} onChange={(e) => setWithdrawalRate(Number(e.target.value))} className="w-full accent-sage" />
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end mt-4">
+                                <div className="space-y-1.5 w-full h-[72px] flex flex-col justify-end">
+                                    <label className="text-[11px] font-bold text-stone-500 tracking-widest uppercase flex justify-between items-end pb-1">
+                                        <span>出生日期</span>
+                                        <span className="text-[10px] text-sage-600 dark:text-sage-400 tracking-normal normal-case font-bold bg-sage-500/10 px-1.5 py-0.5 rounded">
+                                            推算 {currentAgeObj.years}歲{currentAgeObj.months > 0 ? `${currentAgeObj.months}個月` : ''}
+                                        </span>
+                                    </label>
+                                    <div className="relative flex items-center bg-stone-50 dark:bg-stone-800/30 border border-stone-200/80 dark:border-stone-700/80 rounded-lg px-3 py-2.5 focus-within:border-sage-500 focus-within:ring-1 focus-within:ring-sage-500 smooth-transition h-10 md:h-[42px] cursor-pointer group">
+                                        <input 
+                                            type="date" 
+                                            value={birthDate} 
+                                            onChange={(e) => setBirthDate(e.target.value)} 
+                                            className="absolute inset-0 w-full h-full opacity-0 z-10 cursor-pointer"
+                                        />
+                                        <div className="w-full font-semibold text-stone-900 dark:text-stone-100 placeholder-stone-400/50 flex justify-between items-center text-sm md:text-base">
+                                            <span className="font-mono">{birthDate || 'YYYY-MM-DD'}</span>
+                                            <div className="opacity-50 group-hover:opacity-100 smooth-transition"><Icons.Calendar /></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div className="space-y-1.5 w-full h-[72px] flex flex-col justify-end">
+                                    <label className="text-[11px] font-bold text-stone-500 tracking-widest uppercase flex justify-between items-end pb-1 whitespace-nowrap">
+                                        <span>起始滾存本金(IB)</span>
+                                        <span className="text-[10px] text-sage-500 dark:text-sage-400 tracking-normal normal-case flex items-center gap-1 font-bold">
+                                            <Icons.Activity/> XIRR 連動
+                                        </span>
+                                    </label>
+                                    <div className="flex items-center bg-stone-100/50 dark:bg-stone-800/30 border border-transparent rounded-lg px-3 py-2.5 cursor-not-allowed h-10 md:h-[42px]">
+                                        <span className="text-stone-400 dark:text-stone-500 mr-2 text-sm">$</span>
+                                        <div className="w-full font-semibold text-sage-600 dark:text-sage-400 opacity-90 truncate">
+                                            {latestMarketValue.toLocaleString()}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end mt-4 mb-2">
+                                <div className="bg-stone-50 dark:bg-stone-800/30 p-3 md:p-4 rounded-xl border border-stone-200/50 dark:border-stone-700/50 flex flex-col h-full justify-between">
+                                    <div className="text-[10px] md:text-[11px] text-stone-500 tracking-widest mb-1 font-bold">現金帳篷 (2年)</div>
+                                    <div className="font-bold text-lg md:text-xl text-stone-900 dark:text-stone-100">+ ${Math.round(cashTent).toLocaleString()}</div>
+                                </div>
+                                <div className="bg-stone-50 dark:bg-stone-800/30 p-3 md:p-4 rounded-xl border border-stone-200/50 dark:border-stone-700/50 flex flex-col h-full justify-between relative overflow-hidden">
+                                    <div className="absolute inset-0 bg-stone-200/20 dark:bg-stone-700/20 animate-pulse"></div>
+                                    <div className="relative z-10 text-[10px] md:text-[11px] text-stone-500 tracking-widest mb-1 font-bold">
+                                        終極 FIRE <span className="text-sage-600 dark:text-sage-400">總目標</span>
+                                    </div>
+                                    <div className="relative z-10 font-black text-lg md:text-xl text-stone-900 dark:text-stone-100">${Math.round(target).toLocaleString()}</div>
+                                </div>
+                            </div>
+
+                            {/* 階段投入 */}
+                            <div className="space-y-3">
+                                {/* 一階 */}
+                                <div className="p-3 md:p-4 bg-stone-50 dark:bg-stone-800/30 border border-stone-200/50 dark:border-stone-700/50 rounded-lg">
+                                    <div className="flex justify-between items-center mb-3">
+                                        <span className="text-[11px] font-bold text-stone-500 uppercase tracking-widest">一階：舊債併行期</span>
+                                        <span className="text-[10px] text-sage-500 dark:text-sage-400 flex items-center gap-1"><Icons.Calendar/> 債務連動</span>
+                                    </div>
+                                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                                        <div className="flex-1 flex items-center bg-stone-200/40 dark:bg-stone-800/60 border border-transparent rounded px-2 py-2 cursor-not-allowed">
+                                            <span className="w-full text-center font-bold text-sm text-stone-500 dark:text-stone-400">{autoStage1Months}</span>
+                                            <span className="text-[10px] text-stone-500/70 ml-1 shrink-0">個月</span>
+                                        </div>
+                                        <div className="flex-[1.5] flex items-center bg-white dark:bg-[#121212] border border-stone-200 dark:border-stone-700 rounded px-2 py-2 focus-within:border-sage-500 smooth-transition">
+                                            <span className="text-[10px] text-stone-400 mr-1 shrink-0">投入</span>
+                                            <input type="number" value={localStage1} onChange={e=>handleStage1Change(e.target.value)} placeholder="0" className="w-full bg-transparent outline-none text-right font-medium text-sm text-dusty-600 dark:text-dusty-400 placeholder-stone-400/50" />
+                                        </div>
+                                    </div>
+                                </div>
+                                {/* 二階 */}
+                                <div className="p-3 md:p-4 bg-stone-50 dark:bg-stone-800/30 border border-stone-200/50 dark:border-stone-700/50 rounded-lg">
+                                    <div className="flex justify-between items-center mb-3">
+                                        <span className="text-[11px] font-bold text-stone-500 uppercase tracking-widest">二階：常規還款+成功費期</span>
+                                        <span className="text-[10px] text-sage-500 dark:text-sage-400 flex items-center gap-1"><Icons.Calendar/> 債務連動</span>
+                                    </div>
+                                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                                        <div className="flex-1 flex items-center bg-stone-200/40 dark:bg-stone-800/60 border border-transparent rounded px-2 py-2 cursor-not-allowed">
+                                            <span className="w-full text-center font-bold text-sm text-stone-500 dark:text-stone-400">{autoStage2Months}</span>
+                                            <span className="text-[10px] text-stone-500/70 ml-1 shrink-0">個月</span>
+                                        </div>
+                                        <div className="flex-[1.5] flex items-center bg-white dark:bg-[#121212] border border-stone-200 dark:border-stone-700 rounded px-2 py-2 focus-within:border-sage-500 smooth-transition">
+                                            <span className="text-[10px] text-stone-400 mr-1 shrink-0">投入</span>
+                                            <input type="number" value={contributionStage2} onChange={e=>setContributionStage2(e.target.value === '' ? '' : Number(e.target.value))} placeholder="0" className="w-full bg-transparent outline-none text-right font-medium text-sm text-stone-900 dark:text-stone-100 placeholder-stone-400/50" />
+                                        </div>
+                                    </div>
+                                </div>
+                                {/* 三階 */}
+                                <div className="p-3 md:p-4 bg-stone-50 dark:bg-stone-800/30 border border-stone-200/50 dark:border-stone-700/50 rounded-lg">
+                                    <div className="flex justify-between items-center mb-3">
+                                        <span className="text-[11px] font-bold text-stone-500 uppercase tracking-widest">三階：債務全清後 (純儲蓄)</span>
+                                    </div>
+                                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                                        <div className="flex-1 flex items-center justify-center bg-transparent px-2 py-2">
+                                            <span className="text-xs text-stone-500 w-full text-center">餘下歲月</span>
+                                        </div>
+                                        <div className="flex-[1.5] flex items-center bg-white dark:bg-[#121212] border border-stone-200 dark:border-stone-700 rounded px-2 py-2 focus-within:border-sage-500 smooth-transition">
+                                            <span className="text-[10px] text-stone-400 mr-1 shrink-0">投入</span>
+                                            <input type="number" value={contributionStage3} onChange={e=>setContributionStage3(e.target.value === '' ? '' : Number(e.target.value))} placeholder="0" className="w-full bg-transparent outline-none text-right font-medium text-sm text-stone-900 dark:text-stone-100 placeholder-stone-400/50" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* 滑桿區 */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-4 border-t border-stone-200 dark:border-stone-800">
+                                <div>
+                                    <label className="text-[11px] text-stone-500 tracking-widest mb-3 font-bold uppercase flex justify-between items-center">
+                                        年化報酬率 (XIRR)
+                                    </label>
+                                    <div className="flex flex-col gap-3">
+                                        <div className="bg-stone-100 dark:bg-stone-800/50 rounded-md px-3 py-2 border border-stone-200 dark:border-stone-700 text-sage-600 dark:text-sage-400 font-bold text-center">
+                                            {annualReturn} %
+                                        </div>
+                                        <input type="range" min="1" max="15" step="0.5" value={num(annualReturn)} onChange={(e) => setAnnualReturn(Number(e.target.value))} className="w-full accent-sage" />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="text-[11px] text-stone-500 tracking-widest mb-3 font-bold uppercase flex justify-between items-center">
+                                        通脹率 (Inflation)
+                                    </label>
+                                    <div className="flex flex-col gap-3">
+                                        <div className="bg-stone-100 dark:bg-stone-800/50 rounded-md px-3 py-2 border border-stone-200 dark:border-stone-700 text-clay-600 dark:text-clay-400 font-bold text-center">
+                                            {inflationRate} %
+                                        </div>
+                                        <input type="range" min="0" max="6" step="0.1" value={num(inflationRate)} onChange={(e) => setInflationRate(Number(e.target.value))} className="w-full accent-clay" />
+                                    </div>
+                                </div>
+                            </div>
+                        </Card>
+                    </div>
+
+                    {/* 右欄：圖表與里程碑 */}
+                    <div className="lg:col-span-2 space-y-6">
+                        <Card className="p-4 md:p-6 flex flex-col h-full">
+                            
+                            <div className="flex justify-between items-start mb-1 md:mb-2">
+                                <SectionTitle title="複利與通脹折算曲線 (三階段模型)" subtitle="Growth Trajectory" className="mb-0" />
+                                <div className="flex flex-col items-end text-right shrink-0 ml-4 bg-stone-50/50 dark:bg-stone-800/40 p-2 md:p-2.5 rounded-lg border border-stone-200/50 dark:border-stone-700/50">
+                                    <div className="text-[9px] md:text-[10px] text-stone-500 font-bold uppercase tracking-widest mb-0.5">達標需時</div>
+                                    {hit ? (
+                                        <>
+                                            <div className="text-lg md:text-xl font-black text-sage-600 dark:text-sage-400 leading-none mt-0.5">
+                                                {y > 0 && <>{y}<span className="text-xs font-normal mx-0.5 text-sage-500/70">年</span></>}
+                                                {m > 0 && <>{m}<span className="text-xs font-normal ml-0.5 text-sage-500/70">個月</span></>}
+                                                {y === 0 && m === 0 && '已達標'}
+                                            </div>
+                                            <div className="text-[8px] md:text-[9px] text-stone-500 mt-1 font-medium">預計達成: {hit.yearStr} ({hit.ageStr})</div>
+                                        </>
+                                    ) : (
+                                        <div className="text-lg font-bold text-stone-600">—</div>
+                                    )}
+                                </div>
+                            </div>
+                            
+                            <div className="w-full h-[300px] sm:h-[350px] lg:h-[450px] relative">
+                                <canvas ref={chartRef}></canvas>
+                            </div>
+
+                            <div className="mt-8 border-t border-stone-100 dark:border-stone-800 pt-6 space-y-6">
+                                <h3 className="text-sm font-bold text-stone-800 dark:text-stone-200 tracking-wider flex items-center gap-2">
+                                    <Icons.TrendingUp/> 實質購買力進度碑
+                                </h3>
+                                
+                                <div className="grid grid-cols-3 gap-2 md:gap-4">
+                                    {[1000000, 2000000, 3000000].map((milestone) => {
+                                        const mData = chartData.data.find(d => d.實質購買力 >= milestone);
+                                        return (
+                                            <div key={milestone} className="bg-stone-50 dark:bg-stone-800/30 p-2 md:p-4 rounded-xl border border-stone-200/50 dark:border-stone-700/50 text-center flex flex-col justify-center hover:border-stone-300 dark:hover:border-stone-600 smooth-transition cursor-default">
+                                                <div className="text-[9px] md:text-[11px] text-stone-500 dark:text-stone-400 mb-1.5 font-medium tracking-widest">{milestone / 10000}萬 實質進度</div>
+                                                {mData ? (
+                                                    <>
+                                                        <div className="font-bold text-base md:text-xl text-stone-900 dark:text-stone-100">{mData.ageStr}</div>
+                                                        <div className="text-[8px] md:text-[10px] text-stone-500 mt-1 uppercase tracking-wider">{mData.yearStr} 達成</div>
+                                                    </>
+                                                ) : (
+                                                    <div className="font-bold text-base md:text-xl text-stone-300 dark:text-stone-700">—</div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+
+                                {}
+                                <div className="mt-8 pt-6 border-t border-stone-100 dark:border-stone-800 space-y-4">
+                                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-0">
+                                        <h3 className="text-sm font-bold text-stone-800 dark:text-stone-200 tracking-wider flex items-center gap-2">
+                                            <Icons.Activity/> 動態提領多階層護欄 (GUYTON-KLINGER)
+                                        </h3>
+                                        <span className="bg-stone-200/50 dark:bg-stone-800 text-stone-600 dark:text-stone-400 text-[10px] px-2 py-1 rounded w-fit">
+                                            初始提領率 {withdrawalRate.toFixed(1)}%
+                                        </span>
+                                    </div>
+                                    
+                                    <div className="flex gap-2 lg:gap-3 overflow-x-auto hide-scrollbar pb-2 snap-x mt-4">
+                                        {/* Red Card: 淡化 */}
+                                        <div className="snap-start shrink-0 min-w-[130px] md:min-w-0 md:flex-1 p-3 lg:p-4 rounded-xl border border-rose-200/60 dark:border-rose-800/30 bg-rose-50/40 dark:bg-rose-900/10 flex flex-col justify-between hover:bg-rose-100/50 dark:hover:bg-rose-900/20 smooth-transition">
+                                            <div>
+                                                <div className="text-rose-600 dark:text-rose-500 font-bold text-[10px] lg:text-xs mb-1">紅燈防線 -15%</div>
+                                                <div className="text-stone-500 text-[10px] lg:text-[11px]">資產 &lt; {Math.round(baseTarget/1.2 / 10000)}萬</div>
+                                            </div>
+                                            <div className="text-rose-700 dark:text-rose-400 font-black text-base lg:text-xl mt-3 lg:mt-4">${Math.round(targetMonthlyIncome * 0.85).toLocaleString()}</div>
+                                        </div>
+                                        {/* Yellow Card: 淡化 */}
+                                        <div className="snap-start shrink-0 min-w-[130px] md:min-w-0 md:flex-1 p-3 lg:p-4 rounded-xl border border-amber-200/60 dark:border-amber-800/30 bg-amber-50/40 dark:bg-amber-900/10 flex flex-col justify-between hover:bg-amber-100/50 dark:hover:bg-amber-900/20 smooth-transition">
+                                            <div>
+                                                <div className="text-amber-600 dark:text-amber-500 font-bold text-[10px] lg:text-xs mb-1">黃燈預警 -10%</div>
+                                                <div className="text-stone-500 text-[10px] lg:text-[11px]">資產 &lt; {Math.round(baseTarget/1.1 / 10000)}萬</div>
+                                            </div>
+                                            <div className="text-amber-700 dark:text-amber-400 font-black text-base lg:text-xl mt-3 lg:mt-4">${Math.round(targetMonthlyIncome * 0.9).toLocaleString()}</div>
+                                        </div>
+                                        {/* Green (Base) Card: 淡化但保持視覺中心 */}
+                                        <div className="snap-start shrink-0 min-w-[140px] md:min-w-0 md:flex-1 p-3 lg:p-4 rounded-xl border-2 border-sage-300 dark:border-sage-700/50 bg-sage-100/40 dark:bg-sage-900/10 flex flex-col justify-between relative shadow-sm hover:bg-sage-100/60 dark:hover:bg-sage-900/20 smooth-transition">
+                                            <div>
+                                                <div className="text-sage-700 dark:text-sage-400 font-bold text-[11px] lg:text-xs mb-1">基準目標點</div>
+                                                <div className="text-stone-500 text-[10px] lg:text-[11px]">總額 {Math.round(baseTarget / 10000)}萬</div>
+                                            </div>
+                                            <div className="text-sage-800 dark:text-sage-300 font-black text-lg lg:text-2xl mt-3 lg:mt-4">${Math.round(targetMonthlyIncome).toLocaleString()}</div>
+                                        </div>
+                                        {/* Emerald Card: 淡化 */}
+                                        <div className="snap-start shrink-0 min-w-[130px] md:min-w-0 md:flex-1 p-3 lg:p-4 rounded-xl border border-emerald-200/60 dark:border-emerald-800/30 bg-emerald-50/40 dark:bg-emerald-900/10 flex flex-col justify-between hover:bg-emerald-100/50 dark:hover:bg-emerald-900/20 smooth-transition">
+                                            <div>
+                                                <div className="text-emerald-600 dark:text-emerald-500 font-bold text-[10px] lg:text-xs mb-1">綠燈一階 +5%</div>
+                                                <div className="text-stone-500 text-[10px] lg:text-[11px]">資產 &gt; {Math.round(baseTarget/0.9 / 10000)}萬</div>
+                                            </div>
+                                            <div className="text-emerald-700 dark:text-emerald-400 font-black text-base lg:text-xl mt-3 lg:mt-4">${Math.round(targetMonthlyIncome * 1.05).toLocaleString()}</div>
+                                        </div>
+                                        {/* Teal Card: 淡化 */}
+                                        <div className="snap-start shrink-0 min-w-[130px] md:min-w-0 md:flex-1 p-3 lg:p-4 rounded-xl border border-teal-200/60 dark:border-teal-800/30 bg-teal-50/40 dark:bg-teal-900/10 flex flex-col justify-between hover:bg-teal-100/50 dark:hover:bg-teal-900/20 smooth-transition">
+                                            <div>
+                                                <div className="text-teal-600 dark:text-teal-500 font-bold text-[10px] lg:text-xs mb-1">綠燈二階 +10%</div>
+                                                <div className="text-stone-500 text-[10px] lg:text-[11px]">資產 &gt; {Math.round(baseTarget/0.8 / 10000)}萬</div>
+                                            </div>
+                                            <div className="text-teal-700 dark:text-teal-400 font-black text-base lg:text-xl mt-3 lg:mt-4">${Math.round(targetMonthlyIncome * 1.1).toLocaleString()}</div>
+                                        </div>
+                                    </div>
+                                    <p className="text-[10px] text-stone-500 mt-2 leading-relaxed pt-2">
+                                        註：當前提領率(CWR)偏離初始設定20%時觸發大階層，偏離10%時觸發預警階層。若遇極端熊市，需確保能承受 15% 的生活費縮減至 ${Math.round(targetMonthlyIncome * 0.85).toLocaleString()} 以保本。
+                                    </p>
+                                </div>
+                            </div>
+
                         </Card>
                     </div>
                 </div>
@@ -1281,373 +1762,6 @@
                                     </tbody>
                                 </table>
                             </div>
-                        </Card>
-                    </div>
-                </div>
-            );
-        }
-
-        function CalculatorTab({ 
-            isDark, birthDate, setBirthDate, currentAgeObj,
-            autoStage1Months, autoStage2Months,
-            contributionStage2, setContributionStage2,
-            contributionStage3, setContributionStage3,
-            annualReturn, setAnnualReturn, inflationRate, setInflationRate,
-            availableSavings, setExpenses, totalIncome, mpf, chartData, target, setTarget,
-            latestMarketValue 
-        }) {
-            const chartRef = useRef(null);
-            const chartInstance = useRef(null);
-
-            const [localStage1, setLocalStage1] = useState(availableSavings);
-
-            useEffect(() => {
-                if (num(localStage1) !== availableSavings) {
-                    setLocalStage1(availableSavings);
-                }
-            }, [availableSavings]);
-
-            const handleStage1Change = (val) => {
-                setLocalStage1(val);
-                if (val === '') {
-                    setExpenses(totalIncome - num(mpf));
-                } else {
-                    setExpenses(totalIncome - num(mpf) - Number(val));
-                }
-            };
-
-            useEffect(() => {
-                if (!chartRef.current) return;
-                if (chartInstance.current) chartInstance.current.destroy();
-
-                const ctx = chartRef.current.getContext('2d');
-                const displayData = chartData.data;
-                const labels = displayData.map(d => d.monthsElapsed);
-
-                const nominalColor = isDark ? '#799477' : '#5c755a'; 
-                const realColor = isDark ? '#8ba2b3' : '#6b8496'; 
-                const principalColor = isDark ? '#5c5952' : '#a8a49c'; 
-                const targetColor = isDark ? '#cfa293' : '#b87a67'; 
-                const gridColor = isDark ? '#2e2c29' : '#e8e6e1';
-                
-                const safeTarget = num(target);
-
-                chartInstance.current = new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: labels,
-                        datasets: [
-                            {
-                                label: '名目總資產',
-                                data: displayData.map(d => d.總資產),
-                                borderColor: nominalColor,
-                                backgroundColor: isDark ? 'rgba(121, 148, 119, 0.1)' : 'rgba(92, 117, 90, 0.08)',
-                                fill: true,
-                                tension: 0.3,
-                                borderWidth: 3,
-                                pointRadius: 0,
-                                pointHoverRadius: 6,
-                                pointHoverBackgroundColor: nominalColor
-                            },
-                            {
-                                label: '實質購買力',
-                                data: displayData.map(d => d.實質購買力),
-                                borderColor: realColor,
-                                borderDash: [5, 5],
-                                fill: false,
-                                tension: 0.3,
-                                borderWidth: 2,
-                                pointRadius: 0,
-                                pointHoverRadius: 6
-                            },
-                            {
-                                label: '累計投入本金',
-                                data: displayData.map(d => d.投入本金),
-                                borderColor: principalColor,
-                                fill: false,
-                                tension: 0.3,
-                                borderWidth: 2,
-                                pointRadius: 0
-                            },
-                            {
-                                label: `目標: ${safeTarget/10000}萬`,
-                                data: displayData.map(() => safeTarget),
-                                borderColor: targetColor,
-                                borderDash: [2, 2],
-                                fill: false,
-                                tension: 0,
-                                borderWidth: 1.5,
-                                pointRadius: 0
-                            }
-                        ]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        interaction: { mode: 'index', intersect: false },
-                        plugins: {
-                            legend: { 
-                                display: true, 
-                                position: 'top', 
-                                align: 'center',
-                                labels: { 
-                                    color: isDark ? '#a8a49c' : '#5c5952',
-                                    usePointStyle: true,
-                                    boxWidth: 8,
-                                    font: { family: 'Inter', size: 10 }
-                                } 
-                            },
-                            tooltip: {
-                                backgroundColor: isDark ? 'rgba(28, 27, 26, 0.95)' : 'rgba(255, 255, 255, 0.95)',
-                                titleColor: isDark ? '#e8e6e1' : '#1c1b1a',
-                                bodyColor: isDark ? '#d6d3cd' : '#5c5952',
-                                borderColor: isDark ? '#45423d' : '#e8e6e1',
-                                borderWidth: 1,
-                                cornerRadius: 8,
-                                padding: 12,
-                                titleFont: { family: 'Inter', size: 12, weight: 'bold' },
-                                bodyFont: { family: 'Inter', size: 11, weight: '500' },
-                                boxPadding: 6,
-                                callbacks: {
-                                    title: (context) => {
-                                        const d = displayData[context[0].dataIndex];
-                                        return `預測時間: ${d.yearStr} (${d.ageStr})`;
-                                    },
-                                    label: function(context) {
-                                        let label = context.dataset.label || '';
-                                        if (context.parsed.y !== null) {
-                                            label += `  $${(context.parsed.y / 10000).toFixed(1)} 萬`;
-                                            if (context.dataset.label === '實質購買力') {
-                                                const fireIncome = (context.parsed.y * 0.04) / 12;
-                                                label += `  (被動: $${Math.round(fireIncome).toLocaleString()}/月)`;
-                                            }
-                                        }
-                                        return label;
-                                    }
-                                }
-                            }
-                        },
-                        scales: {
-                            x: { 
-                                grid: { display: false }, 
-                                ticks: { 
-                                    color: principalColor, 
-                                    font: { family: 'Inter', size: 10 }, 
-                                    maxRotation: 0,
-                                    callback: function(val, index) {
-                                        const d = displayData[index];
-                                        return d && d.monthsElapsed % 12 === 0 ? d.age + '歲' : null;
-                                    }
-                                } 
-                            },
-                            y: { 
-                                border: { display: false },
-                                grid: { color: gridColor, drawBorder: false }, 
-                                ticks: { 
-                                    color: principalColor, font: { family: 'Inter', size: 10 },
-                                    callback: function(value) { return value / 10000 + ' 萬'; }
-                                } 
-                            }
-                        }
-                    }
-                });
-                return () => { if (chartInstance.current) chartInstance.current.destroy(); };
-            }, [chartData, isDark, target]);
-
-            const hit = chartData.targetHit;
-            const y = hit ? Math.floor(hit.monthsElapsed / 12) : 0;
-            const m = hit ? hit.monthsElapsed % 12 : 0;
-
-            return (
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-[fadeIn_0.5s_ease-out] items-start">
-                    
-                    <div className="lg:col-span-1 space-y-6">
-                        <Card className="p-5 md:p-6 space-y-6">
-                            <h3 className="text-lg font-bold text-stone-800 dark:text-stone-200 flex items-center gap-2">
-                                <Icons.Dashboard/> 三階段 FIRE 引擎
-                            </h3>
-                            
-                            <div className="h-[72px]">
-                                <CalcInput label="自訂終極目標 (實質購買力 HKD)" value={target} onChange={(e)=>setTarget(e.target.value === '' ? '' : Number(e.target.value))} />
-                            </div>
-                            
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
-                                
-                                {/* 將年齡改為出生日期輸入 */}
-                                <div className="space-y-1.5 w-full h-[72px] flex flex-col justify-end">
-                                    <label className="text-[11px] font-bold text-stone-500 tracking-widest uppercase flex justify-between items-end pb-1">
-                                        <span>出生日期</span>
-                                        <span className="text-[10px] text-sage-600 dark:text-sage-400 tracking-normal normal-case font-bold bg-sage-500/10 px-1.5 py-0.5 rounded">
-                                            當前推算為 {currentAgeObj.years}歲{currentAgeObj.months > 0 ? `${currentAgeObj.months}個月` : ''}
-                                        </span>
-                                    </label>
-                                    <div className="relative flex items-center bg-stone-50 dark:bg-stone-800/30 border border-stone-200/80 dark:border-stone-700/80 rounded-lg px-3 py-2.5 focus-within:border-sage-500 focus-within:ring-1 focus-within:ring-sage-500 smooth-transition h-10 md:h-[42px] cursor-pointer group">
-                                        <input 
-                                            type="date" 
-                                            value={birthDate} 
-                                            onChange={(e) => setBirthDate(e.target.value)} 
-                                            className="absolute inset-0 w-full h-full opacity-0 z-10 cursor-pointer"
-                                        />
-                                        <div className="w-full font-semibold text-stone-900 dark:text-stone-100 placeholder-stone-400/50 flex justify-between items-center text-sm md:text-base">
-                                            <span className="font-mono">{birthDate || 'YYYY-MM-DD'}</span>
-                                            <div className="opacity-50 group-hover:opacity-100 smooth-transition"><Icons.Calendar /></div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div className="space-y-1.5 w-full h-[72px] flex flex-col justify-end">
-                                    <label className="text-[11px] font-bold text-stone-500 tracking-widest uppercase flex justify-between items-end pb-1">
-                                        <span>起始滾存本金 (IB)</span>
-                                        <span className="text-[10px] text-sage-500 dark:text-sage-400 tracking-normal normal-case flex items-center gap-1 font-bold">
-                                            <Icons.Activity/> XIRR 連動
-                                        </span>
-                                    </label>
-                                    <div className="flex items-center bg-stone-100/50 dark:bg-stone-800/30 border border-transparent rounded-lg px-3 py-2.5 cursor-not-allowed h-10 md:h-[42px]">
-                                        <span className="text-stone-400 dark:text-stone-500 mr-2 text-sm">$</span>
-                                        <div className="w-full font-semibold text-sage-600 dark:text-sage-400 opacity-90 truncate">
-                                            {latestMarketValue.toLocaleString()}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="space-y-3">
-                                <div className="p-3 md:p-4 bg-stone-50 dark:bg-stone-800/30 border border-stone-200/50 dark:border-stone-700/50 rounded-lg">
-                                    <div className="flex justify-between items-center mb-3">
-                                        <span className="text-[11px] font-bold text-stone-500 uppercase tracking-widest">一階：舊債併行期</span>
-                                        <span className="text-[10px] text-sage-500 dark:text-sage-400 flex items-center gap-1"><Icons.Calendar/> 債務連動</span>
-                                    </div>
-                                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                                        <div className="flex-1 flex items-center bg-stone-200/40 dark:bg-stone-800/60 border border-transparent rounded px-2 py-2 cursor-not-allowed">
-                                            <span className="w-full text-center font-bold text-sm text-stone-500 dark:text-stone-400">{autoStage1Months}</span>
-                                            <span className="text-[10px] text-stone-500/70 ml-1 shrink-0">個月</span>
-                                        </div>
-                                        <div className="flex-[1.5] flex items-center bg-white dark:bg-[#121212] border border-stone-200 dark:border-stone-700 rounded px-2 py-2 focus-within:border-sage-500 smooth-transition">
-                                            <span className="text-[10px] text-stone-400 mr-1 shrink-0">投入</span>
-                                            <input type="number" value={localStage1} onChange={e=>handleStage1Change(e.target.value)} placeholder="0" className="w-full bg-transparent outline-none text-right font-medium text-sm text-dusty-600 dark:text-dusty-400 placeholder-stone-400/50" />
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="p-3 md:p-4 bg-stone-50 dark:bg-stone-800/30 border border-stone-200/50 dark:border-stone-700/50 rounded-lg">
-                                    <div className="flex justify-between items-center mb-3">
-                                        <span className="text-[11px] font-bold text-stone-500 uppercase tracking-widest">二階：常規還款+成功費期</span>
-                                        <span className="text-[10px] text-sage-500 dark:text-sage-400 flex items-center gap-1"><Icons.Calendar/> 債務連動</span>
-                                    </div>
-                                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                                        <div className="flex-1 flex items-center bg-stone-200/40 dark:bg-stone-800/60 border border-transparent rounded px-2 py-2 cursor-not-allowed">
-                                            <span className="w-full text-center font-bold text-sm text-stone-500 dark:text-stone-400">{autoStage2Months}</span>
-                                            <span className="text-[10px] text-stone-500/70 ml-1 shrink-0">個月</span>
-                                        </div>
-                                        <div className="flex-[1.5] flex items-center bg-white dark:bg-[#121212] border border-stone-200 dark:border-stone-700 rounded px-2 py-2 focus-within:border-sage-500 smooth-transition">
-                                            <span className="text-[10px] text-stone-400 mr-1 shrink-0">投入</span>
-                                            <input type="number" value={contributionStage2} onChange={e=>setContributionStage2(e.target.value === '' ? '' : Number(e.target.value))} placeholder="0" className="w-full bg-transparent outline-none text-right font-medium text-sm text-stone-900 dark:text-stone-100 placeholder-stone-400/50" />
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="p-3 md:p-4 bg-stone-50 dark:bg-stone-800/30 border border-stone-200/50 dark:border-stone-700/50 rounded-lg">
-                                    <div className="flex justify-between items-center mb-3">
-                                        <span className="text-[11px] font-bold text-stone-500 uppercase tracking-widest">三階：債務全清後 (純儲蓄)</span>
-                                    </div>
-                                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                                        <div className="flex-1 flex items-center justify-center bg-transparent px-2 py-2">
-                                            <span className="text-xs text-stone-500 w-full text-center">餘下歲月</span>
-                                        </div>
-                                        <div className="flex-[1.5] flex items-center bg-white dark:bg-[#121212] border border-stone-200 dark:border-stone-700 rounded px-2 py-2 focus-within:border-sage-500 smooth-transition">
-                                            <span className="text-[10px] text-stone-400 mr-1 shrink-0">投入</span>
-                                            <input type="number" value={contributionStage3} onChange={e=>setContributionStage3(e.target.value === '' ? '' : Number(e.target.value))} placeholder="0" className="w-full bg-transparent outline-none text-right font-medium text-sm text-stone-900 dark:text-stone-100 placeholder-stone-400/50" />
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-4 border-t border-stone-200 dark:border-stone-800">
-                                <div>
-                                    <label className="text-[11px] text-stone-500 tracking-widest mb-3 font-bold uppercase flex justify-between items-center">
-                                        年化報酬率 (XIRR)
-                                    </label>
-                                    <div className="flex flex-col gap-3">
-                                        <div className="bg-stone-100 dark:bg-stone-800/50 rounded-md px-3 py-2 border border-stone-200 dark:border-stone-700 text-sage-600 dark:text-sage-400 font-bold text-center">
-                                            {annualReturn} %
-                                        </div>
-                                        <input type="range" min="1" max="15" step="0.5" value={num(annualReturn)} onChange={(e) => setAnnualReturn(Number(e.target.value))} className="w-full accent-sage" />
-                                    </div>
-                                </div>
-                                <div>
-                                    <label className="text-[11px] text-stone-500 tracking-widest mb-3 font-bold uppercase flex justify-between items-center">
-                                        通脹率 (Inflation)
-                                    </label>
-                                    <div className="flex flex-col gap-3">
-                                        <div className="bg-stone-100 dark:bg-stone-800/50 rounded-md px-3 py-2 border border-stone-200 dark:border-stone-700 text-clay-600 dark:text-clay-400 font-bold text-center">
-                                            {inflationRate} %
-                                        </div>
-                                        <input type="range" min="0" max="6" step="0.1" value={num(inflationRate)} onChange={(e) => setInflationRate(Number(e.target.value))} className="w-full accent-clay" />
-                                    </div>
-                                </div>
-                            </div>
-                        </Card>
-                    </div>
-
-                    <div className="lg:col-span-2 space-y-6">
-                        <Card className="p-4 md:p-6 flex flex-col h-full">
-                            <SectionTitle title="複利與通脹折算曲線 (三階段模型)" subtitle="Growth Trajectory" />
-                            <div className="w-full h-[300px] sm:h-[350px] lg:h-[450px]">
-                                <canvas ref={chartRef}></canvas>
-                            </div>
-
-                            <div className="mt-8 border-t border-stone-100 dark:border-stone-800 pt-6 space-y-6">
-                                <h3 className="text-sm font-bold text-stone-800 dark:text-stone-200 tracking-wider flex items-center gap-2">
-                                    <Icons.TrendingUp/> 實質購買力進度碑
-                                </h3>
-                                
-                                {/* 調整為 3 欄位均分排版 (grid-cols-3)，並只保留 100萬、200萬、300萬 */}
-                                <div className="grid grid-cols-3 gap-2 md:gap-4">
-                                    {[1000000, 2000000, 3000000].map((milestone) => {
-                                        const mData = chartData.data.find(d => d.實質購買力 >= milestone);
-                                        return (
-                                            <div key={milestone} className="bg-stone-50 dark:bg-stone-800/30 p-2 md:p-4 rounded-xl border border-stone-200/50 dark:border-stone-700/50 text-center flex flex-col justify-center hover:border-stone-300 dark:hover:border-stone-600 smooth-transition cursor-default">
-                                                <div className="text-[9px] md:text-[11px] text-stone-500 dark:text-stone-400 mb-1.5 font-medium tracking-widest">{milestone / 10000}萬 實質進度</div>
-                                                {mData ? (
-                                                    <>
-                                                        <div className="font-bold text-base md:text-xl text-stone-900 dark:text-stone-100">{mData.ageStr}</div>
-                                                        <div className="text-[8px] md:text-[10px] text-stone-500 mt-1 uppercase tracking-wider">{mData.yearStr} 達成</div>
-                                                    </>
-                                                ) : (
-                                                    <div className="font-bold text-base md:text-xl text-stone-300 dark:text-stone-700">—</div>
-                                                )}
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                                
-                                <div className="p-5 md:p-8 rounded-xl border border-sage-200 dark:border-sage-800/50 bg-sage-50/50 dark:bg-sage-900/10 shadow-sm relative overflow-hidden flex flex-col sm:flex-row items-center justify-between gap-6 sm:gap-4 md:gap-6 hover:shadow-md smooth-transition">
-                                    <div className="absolute top-0 right-0 w-24 md:w-32 h-24 md:h-32 bg-sage-200/40 dark:bg-sage-800/30 rounded-bl-full -mr-12 md:-mr-16 -mt-12 md:-mt-16 pointer-events-none"></div>
-                                    <div className="absolute bottom-0 left-0 w-16 md:w-24 h-16 md:h-24 bg-sage-200/30 dark:bg-sage-800/20 rounded-tr-full -ml-8 md:-ml-12 -mb-8 md:-mb-12 pointer-events-none"></div>
-                                    
-                                    <div className="flex-1 z-10 w-full text-center sm:text-left">
-                                        <p className="text-[10px] md:text-xs text-stone-500 dark:text-stone-400 tracking-widest mb-1.5 md:mb-2 font-bold uppercase">達標 {(num(target)/10000)}萬(實質) 需時</p>
-                                        <div className="text-3xl md:text-4xl font-black text-sage-600 dark:text-sage-400 my-1 md:my-2">
-                                            {hit ? (
-                                                <div className="flex items-baseline justify-center sm:justify-start">
-                                                    {y > 0 && <span>{y}<span className="text-lg md:text-xl mx-1 text-sage-500/70 font-normal">年</span></span>}
-                                                    {m > 0 && <span>{m}<span className="text-lg md:text-xl ml-1 text-sage-500/70 font-normal">個月</span></span>}
-                                                    {y === 0 && m === 0 && <span>已達標</span>}
-                                                </div>
-                                            ) : '—'}
-                                        </div>
-                                        <p className="text-[10px] md:text-xs text-stone-500">預計達成時間: <strong className="text-stone-700 dark:text-stone-300 text-sm md:text-base ml-1">{hit ? `${hit.yearStr} (${hit.ageStr})` : '—'}</strong></p>
-                                    </div>
-
-                                    <div className="hidden sm:block w-px h-16 md:h-24 bg-sage-200/80 dark:bg-sage-800/80 z-10"></div>
-                                    <div className="sm:hidden h-px w-full bg-sage-200/80 dark:bg-sage-800/80 z-10"></div>
-
-                                    <div className="flex-1 z-10 w-full text-center sm:text-left">
-                                        <p className="text-[10px] md:text-xs text-stone-500 dark:text-stone-400 tracking-widest mb-1.5 md:mb-2 font-bold uppercase">達標後 4% 被動收入</p>
-                                        <div className="text-3xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-sage-600 dark:text-sage-400 my-1 md:my-2"><span className="text-lg sm:text-base md:text-lg lg:text-xl mr-1 opacity-60 font-normal">HKD</span>{Math.round((num(target) * 0.04) / 12).toLocaleString()} <span className="text-sm md:text-base font-normal opacity-80">/ 月</span></div>
-                                        <p className="text-[9px] md:text-[11px] text-sage-600/70 dark:text-sage-500 mt-1 md:mt-2">基於實質購買力計算，具備抗通脹能力</p>
-                                    </div>
-                                </div>
-                            </div>
-
                         </Card>
                     </div>
                 </div>
