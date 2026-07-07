@@ -207,18 +207,22 @@
 
             const [target, setTarget] = useLocalStorage('fire_target_v3', 6000000); 
             
-            // 年齡改為由出生日期動態計算
+            // 年齡改為由出生日期動態計算 (精確到月)
             const [birthDate, setBirthDate] = useLocalStorage('fire_birth_date_v1', '1999-07-01');
-            const currentAge = useMemo(() => {
-                if (!birthDate) return 26; // 防呆預設值
+            const currentAgeObj = useMemo(() => {
+                if (!birthDate) return { years: 26, months: 0 };
                 const today = new Date();
                 const dob = new Date(birthDate);
-                let age = today.getFullYear() - dob.getFullYear();
-                const m = today.getMonth() - dob.getMonth();
-                if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
-                    age--;
+                let years = today.getFullYear() - dob.getFullYear();
+                let months = today.getMonth() - dob.getMonth();
+                if (today.getDate() < dob.getDate()) {
+                    months--;
                 }
-                return age;
+                if (months < 0) {
+                    years--;
+                    months += 12;
+                }
+                return { years, months };
             }, [birthDate]);
 
             const [spareCash, setSpareCash] = useLocalStorage('fire_spare_cash_v3', 50000);
@@ -364,12 +368,16 @@
                 
                 const baseYear = 2026;
                 const baseMonth = 7;
+                
+                const startAgeYears = currentAgeObj.years;
+                const startAgeMonths = currentAgeObj.months;
+                const startTotalMonths = startAgeYears * 12 + startAgeMonths;
 
                 data.push({ 
                     monthsElapsed: 0,
                     yearStr: `${baseYear}年${baseMonth}月`,
-                    ageStr: `${num(currentAge)}歲`,
-                    age: num(currentAge),
+                    ageStr: `${startAgeYears}歲${startAgeMonths > 0 ? startAgeMonths + '個月' : ''}`,
+                    age: startAgeYears + startAgeMonths / 12,
                     總資產: balance, 
                     實質購買力: realBalance, 
                     投入本金: balance 
@@ -394,14 +402,16 @@
 
                     let currentY = baseYear + Math.floor((baseMonth - 1 + months) / 12);
                     let currentM = ((baseMonth - 1 + months) % 12) + 1;
-                    let ageY = Math.floor(num(currentAge) + months / 12);
-                    let ageM = months % 12;
+                    
+                    let totalM = startTotalMonths + months;
+                    let ageY = Math.floor(totalM / 12);
+                    let ageM = totalM % 12;
 
                     data.push({
                         monthsElapsed: months,
                         yearStr: `${currentY}年${currentM}月`,
                         ageStr: `${ageY}歲${ageM > 0 ? ageM + '個月' : ''}`,
-                        age: ageY,
+                        age: ageY + ageM / 12,
                         總資產: Math.round(balance), 
                         實質購買力: Math.round(realBalance), 
                         投入本金: Math.round(totalPrincipal)
@@ -414,7 +424,7 @@
                     data, 
                     targetHit: exactTargetData || null 
                 };
-            }, [initialCapital, availableSavings, contributionStage2, contributionStage3, autoStage1Months, autoStage2Months, annualReturn, currentAge, inflationRate, target]);
+            }, [initialCapital, availableSavings, contributionStage2, contributionStage3, autoStage1Months, autoStage2Months, annualReturn, currentAgeObj, inflationRate, target]);
 
             return (
                 <div className={isDarkMode ? 'dark' : ''}>
@@ -464,7 +474,7 @@
                                 {activeTab === 'salary' && <SalaryTab />}
                                 {activeTab === 'loan' && <LoanTab schedule={schedule} outstandingLoan={outstandingLoan} />}
                                 {activeTab === 'calculator' && <CalculatorTab 
-                                    isDark={isDarkMode} birthDate={birthDate} setBirthDate={setBirthDate} currentAge={currentAge}
+                                    isDark={isDarkMode} birthDate={birthDate} setBirthDate={setBirthDate} currentAgeObj={currentAgeObj}
                                     autoStage1Months={autoStage1Months} autoStage2Months={autoStage2Months}
                                     contributionStage2={contributionStage2} setContributionStage2={setContributionStage2}
                                     contributionStage3={contributionStage3} setContributionStage3={setContributionStage3}
@@ -1278,7 +1288,7 @@
         }
 
         function CalculatorTab({ 
-            isDark, birthDate, setBirthDate, currentAge,
+            isDark, birthDate, setBirthDate, currentAgeObj,
             autoStage1Months, autoStage2Months,
             contributionStage2, setContributionStage2,
             contributionStage3, setContributionStage3,
@@ -1468,7 +1478,7 @@
                                     <label className="text-[11px] font-bold text-stone-500 tracking-widest uppercase flex justify-between items-end pb-1">
                                         <span>出生日期</span>
                                         <span className="text-[10px] text-sage-600 dark:text-sage-400 tracking-normal normal-case font-bold bg-sage-500/10 px-1.5 py-0.5 rounded">
-                                            當前推算為 {currentAge} 歲
+                                            當前推算為 {currentAgeObj.years}歲{currentAgeObj.months > 0 ? `${currentAgeObj.months}個月` : ''}
                                         </span>
                                     </label>
                                     <div className="relative flex items-center bg-stone-50 dark:bg-stone-800/30 border border-stone-200/80 dark:border-stone-700/80 rounded-lg px-3 py-2.5 focus-within:border-sage-500 focus-within:ring-1 focus-within:ring-sage-500 smooth-transition h-10 md:h-[42px] cursor-pointer group">
